@@ -142,6 +142,15 @@ function toggleSidebar() {
     document.getElementById('main-content').classList.toggle('full'); 
 }
 
+function viewAnalysisByIndex(index) {
+    const db = getDB();
+    const resultData = db.history[index];
+    if (resultData) {
+        showAnalysis(resultData);
+    }
+}
+
+
 function loadDashboard() {
     const db = getDB();
     document.getElementById('dash-tests').innerText = db.tests.length;
@@ -150,11 +159,16 @@ function loadDashboard() {
     document.getElementById('dash-avg').innerText = avg;
 
     const histEl = document.getElementById('dash-history');
-    histEl.innerHTML = db.history.slice(0, 5).map(h => `
+    histEl.innerHTML = db.history.slice(0, 5).map((h, index) => `
         <tr class="border-b hover:bg-gray-50">
             <td class="py-3 font-bold text-[#2B3674] text-xs">${h.testTitle}</td>
             <td class="py-3 font-bold text-[#05CD99] text-xs">${h.score}/${h.max}</td>
-            <td class="text-right"><button class="text-[10px] font-bold text-[#4318FF] bg-indigo-50 px-3 py-1 rounded-lg" onclick='showAnalysis(${JSON.stringify(h)})'>Analysis</button></td>
+            <td class="text-right">
+                <button class="text-[10px] font-bold text-[#4318FF] bg-indigo-50 px-3 py-1 rounded-lg" 
+                        onclick="viewAnalysisByIndex(${index})">
+                    Analysis
+                </button>
+            </td>
         </tr>`).join('') || `<tr><td colspan="3" class="text-center py-4 text-gray-400">No activity.</td></tr>`;
 
     if(chartInstance) chartInstance.destroy();
