@@ -1,0 +1,532 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ExamWarmUp - Master Prep</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+     <script src="config.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']]
+    }
+  };
+</script>
+   
+</head>
+<body>
+            
+    <!-- Loader Overlay -->
+<div id="global-loader" class="hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center">
+    <div class="stack-wrapper">
+        <div class="layer l1"></div>
+        <div class="layer l2"></div>
+        <div class="layer l3"></div>
+    </div>
+    <div class="text-center">
+        <p id="loader-text" class="text-[#4318FF] font-bold text-xs uppercase tracking-widest animate-pulse">Initializing...</p>
+    </div>
+</div>
+
+
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="flex items-center justify-center">
+        <div class="max-w-md w-full p-8 text-center bg-white rounded-3xl shadow-2xl border border-gray-100">
+            <h1 class="text-4xl font-extrabold text-[#4318FF] mb-2">ExamWarmUp</h1>
+            <p class="text-gray-400 mb-8 font-medium">Elevate your preparation standards.</p>
+            
+            <div class="flex gap-2 mb-6 bg-gray-100 p-1 rounded-2xl">
+                <button id="btn-user-mode" onclick="setAuthMode('user')" class="flex-1 py-3 rounded-xl font-bold transition-all bg-[#4318FF] text-white">Candidate</button>
+                <button id="btn-owner-mode" onclick="setAuthMode('owner')" class="flex-1 py-3 rounded-xl font-bold transition-all text-[#A3AED0]">Admin/Owner</button>
+            </div>
+
+            <div id="user-form" class="space-y-4">
+    <input type="text" id="user-name-input" placeholder="Enter Username" 
+        class="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-[#4318FF] transition font-semibold">
+    
+    <div class="relative">
+        <input type="password" id="user-pass-input" placeholder="Enter Password" 
+            class="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-[#4318FF] transition font-semibold pr-14">
+        
+        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4318FF] transition">
+            <i id="eye-icon" class="fas fa-eye"></i>
+        </button>
+    </div>
+    
+    <button onclick="loginAsUser()" 
+        class="w-full bg-[#4318FF] text-white py-4 rounded-2xl font-extrabold shadow-lg shadow-indigo-100 hover:scale-[1.02] transition">
+        Login / Register
+    </button>
+    <p class="text-[15px] oklch(63.7% 0.237 25.331)">First time users: your password will be saved for future logins.</p>
+</div>
+
+            <div id="owner-form" class="hidden space-y-4">
+                <input type="password" id="owner-code" placeholder="Admin Access Code" class="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-[#2B3674] transition font-semibold">
+                <p class="text-[10px] text-gray-400"></p>
+                <button onclick="loginAsOwner()" class="w-full bg-[#2B3674] text-white py-4 rounded-2xl font-extrabold shadow-lg shadow-blue-100 hover:scale-[1.02] transition">Login Admin</button>
+            </div>
+        </div>
+    </div>
+
+
+     <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <nav class="sidebar" id="sidebar">
+       
+        <div class="p-8">
+            <h1 class="text-2xl font-extrabold text-[#4318FF] mb-8 flex items-center gap-2">
+                <i class="fas fa-layer-group"></i> ExamWarmUp
+            </h1>
+            <div class="space-y-1">
+                <div onclick="switchView('dashboard')" class="nav-link active" id="nav-dashboard"><i class="fas fa-th-large"></i> Dashboard</div>
+                
+                <p class="px-4 text-xs font-bold text-gray-400 mt-6 mb-2">PRACTICE ZONES</p>
+                <div onclick="switchView('daily')" class="nav-link" id="nav-daily"><i class="fas fa-fire text-orange-500"></i> Daily Warmup</div>
+                <div onclick="switchView('full')" class="nav-link" id="nav-full"><i class="fas fa-clipboard-check text-blue-500"></i> Full Mocks</div>
+                <div onclick="switchView('section')" class="nav-link" id="nav-section"><i class="fas fa-cubes text-purple-500"></i> Section Wise</div>
+                <div onclick="switchView('pyq')" class="nav-link" id="nav-pyq"><i class="fas fa-history text-green-500"></i> PYQ Papers</div>
+                
+                <p class="px-4 text-xs font-bold text-gray-400 mt-6 mb-2">ANALYSIS</p>
+                <div onclick="switchView('leaderboard')" class="nav-link" id="nav-leaderboard"><i class="fas fa-trophy text-yellow-500"></i> Leaderboard</div>
+                
+
+                <div onclick="switchView('all-users')" class="nav-link hidden" id="nav-all-users">
+                 <i class="fas fa-user-graduate text-indigo-500"></i> All Students
+                </div>
+            </div>
+        </div>
+        <div class="mt-auto p-8 border-t border-gray-100">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-[#4318FF] font-bold" id="user-avatar-initial">U</div>
+                    <div>
+                        <p class="text-sm font-bold text-[#2B3674]" id="display-user-name">Guest User</p>
+                        <p class="text-xs text-gray-400" id="user-role-label">Full Access</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition-colors p-2" title="Logout">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content" id="main-content">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <p class="text-sm text-gray-500 font-medium">Pages / <span class="text-[#2B3674]" id="page-crumb">Dashboard</span></p>
+                <h2 class="text-3xl font-bold text-[#2B3674]" id="page-title">Dashboard Overview</h2>
+            </div>
+            <div class="flex items-center gap-4 bg-white p-2 rounded-full shadow-sm">
+                <div class="relative hidden sm:block">
+                    <i class="fas fa-search absolute left-4 top-3 text-gray-400 text-xs"></i>
+                    <input type="text" placeholder="Search..." class="bg-[#F4F7FE] rounded-full pl-10 pr-4 py-2.5 text-sm font-medium outline-none w-64 text-[#2B3674]">
+                </div>
+                <button onclick="openAddModal()" 
+                   id="global-upload-btn" 
+                 class="upload-btn hidden flex items-center justify-center gap-2 cursor-pointer outline-none">
+                 <i class="fas fa-cloud-upload-alt pointer-events-none"></i> 
+                  <span class="pointer-events-none">Upload Test</span>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-[#F4F7FE] flex items-center justify-center text-gray-400 cursor-pointer">
+                    <i class="far fa-bell"></i>
+                </div>
+                <button class="md:hidden text-gray-500 mr-2" onclick="toggleSidebar()"><i class="fas fa-bars text-xl"></i></button>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="view-dashboard" class="fade-in space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-[#F4F7FE] text-[#4318FF]"><i class="fas fa-file-alt"></i></div>
+                    <div><p class="text-sm text-[#A3AED0] font-medium">Total Tests</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-tests">0</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon bg-[#F4F7FE] text-[#05CD99]"><i class="fas fa-check-circle"></i></div>
+                    <div><p class="text-sm text-[#A3AED0] font-medium">Tests Attempted</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-attempts">0</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon bg-[#F4F7FE] text-[#FFB547]"><i class="fas fa-chart-line"></i></div>
+                    <div><p class="text-sm text-[#A3AED0] font-medium">Avg Score</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-avg">0</h3></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="dashboard-card">
+                    <h3 class="text-lg font-bold text-[#2B3674] mb-6">Performance Growth</h3>
+                    <div class="h-64"><canvas id="perfChart"></canvas></div>
+                </div>
+                <div class="dashboard-card">
+    <h3 class="text-lg font-bold text-[#2B3674] mb-4">Recent Activity</h3>
+    
+    <div class="recent-activity-container">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-gray-400 text-[10px] uppercase tracking-wider">
+                    <th class="pb-3">Test Name</th>
+                    <th class="pb-3">Score</th>
+                    <th class="pb-3 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody id="dash-history">
+                </tbody>
+        </table>
+    </div>
+</div>
+            
+            </div>
+        </div>
+
+
+
+        <div id="modal-instructions" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        
+        <div class="p-6 border-b bg-gray-50 flex justify-between items-center">
+            <div>
+                <h3 class="text-xl font-extrabold text-[#2B3674]">General Instructions</h3>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider" id="instr-subtitle">NIMCET Exam Interface</p>
+            </div>
+            <div class="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
+                <span class="text-xs font-bold text-[#4318FF]" id="instr-duration">0 Minutes Duration</span>
+            </div>
+        </div>
+        
+        <div class="p-8 overflow-y-auto flex-1 text-sm text-gray-600 leading-relaxed">
+            <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-xl">
+                <p class="font-bold text-red-700 text-xs uppercase mb-1">Attention:</p>
+                <p class="text-gray-600">Please read the instructions carefully for <span id="instr-test-name" class="font-bold">this test</span> before clicking on 'Proceed'.</p>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <h4 class="font-bold text-[#2B3674] mb-2 border-b pb-1 inline-block">1. Paper Pattern & Sections:</h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                        <div class="bg-gray-50 p-2 rounded-lg text-center border">
+                            <p class="text-[10px] font-bold text-gray-400">MATHS</p>
+                            <p class="text-sm font-bold text-[#2B3674]" id="instr-math-count">0 Qs</p>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-lg text-center border">
+                            <p class="text-[10px] font-bold text-gray-400">REASONING</p>
+                            <p class="text-sm font-bold text-[#2B3674]" id="instr-reas-count">0 Qs</p>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-lg text-center border">
+                            <p class="text-[10px] font-bold text-gray-400">COMPUTER</p>
+                            <p class="text-sm font-bold text-[#2B3674]" id="instr-comp-count">0 Qs</p>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-lg text-center border">
+                            <p class="text-[10px] font-bold text-gray-400">ENGLISH</p>
+                            <p class="text-sm font-bold text-[#2B3674]" id="instr-eng-count">0 Qs</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-[#2B3674] mb-2 border-b pb-1 inline-block">2. Question Palette Guide:</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 flex items-center justify-center bg-gray-100 border rounded text-xs font-bold">1</span>
+                            <span class="text-xs italic">You have not visited the question yet.</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 flex items-center justify-center bg-[#EE5D50] text-white rounded-t-lg text-xs font-bold">2</span>
+                            <span class="text-xs italic">You have NOT answered the question.</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 flex items-center justify-center bg-[#05CD99] text-white rounded-b-lg text-xs font-bold">3</span>
+                            <span class="text-xs italic">You have answered the question.</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 flex items-center justify-center bg-[#4318FF] text-white rounded-full text-xs font-bold">4</span>
+                            <span class="text-xs italic">You have marked the question for review.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-xs bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                    <b>Note:</b> Correct answers will reward marks according to the NIMCET scoring system, and negative marks will be deducted for incorrect responses.
+                </p>
+            </div>
+            
+            <div class="mt-8 p-5 bg-indigo-50/50 rounded-2xl flex items-start gap-4 border border-indigo-100 hover:bg-indigo-50 transition-colors">
+                <div class="mt-1">
+                    <input type="checkbox" id="instr-agree" class="w-5 h-5 cursor-pointer accent-[#4318FF]">
+                </div>
+                <label for="instr-agree" class="text-xs font-bold text-gray-600 cursor-pointer select-none">
+                    I have read and understood all the instructions. I declare that I am using a proper working device. I agree to start the test and follow the exam rules.
+                </label>
+            </div>
+        </div>
+
+        <div class="p-6 border-t bg-gray-50 flex justify-end gap-4">
+            <button onclick="document.getElementById('modal-instructions').classList.add('hidden')" class="px-8 py-2.5 font-bold text-gray-400 hover:text-gray-600 transition">CANCEL</button>
+            <button id="start-test-final" disabled onclick="confirmStartQuiz()" class="bg-[#4318FF] text-white px-12 py-2.5 rounded-xl font-extrabold shadow-lg shadow-indigo-100 opacity-50 cursor-not-allowed transition-all transform active:scale-95">
+                PROCEED
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+        <div id="view-tests" class="hidden fade-in">
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="tests-grid"></div>
+        </div>
+
+        <div id="view-section" class="hidden fade-in">
+             <div class="flex gap-4 mb-6 overflow-x-auto pb-2" id="section-tabs">
+                 <button onclick="filterSection('Math')" class="px-6 py-2 bg-[#4318FF] text-white rounded-xl text-sm font-bold shadow-md">Mathematics</button>
+                 <button onclick="filterSection('Comp')" class="px-6 py-2 bg-white text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50">Computer</button>
+                 <button onclick="filterSection('Reas')" class="px-6 py-2 bg-white text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50">Reasoning</button>
+                 <button onclick="filterSection('Eng')" class="px-6 py-2 bg-white text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50">English</button>
+             </div>
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="section-grid"></div>
+        </div>
+        
+        <!-- Analysis View -->
+        <div id="view-analysis" class="hidden fade-in w-full h-full absolute inset-0 bg-[#F4F7FE] z-[60] overflow-y-auto p-4 md:p-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 px-6 pt-4 flex justify-between items-center">
+                    <div class="flex gap-6">
+                        <div class="an-tab active" id="tab-overall" onclick="switchAnalysisTab('overall')">OVERALL ANALYSIS</div>
+                        <div class="an-tab" id="tab-solutions" onclick="switchAnalysisTab('solutions')">SOLUTION REPORT</div>
+                    </div>
+                    <button onclick="switchView('dashboard')" class="text-gray-400 hover:text-red-500 pb-4">
+                      <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div id="an-overall">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-6">
+                        <div class="an-card"><p class="an-label">SCORE</p><h3 class="an-value text-[#4318FF]"><span id="an-score">0</span><span class="an-sub">/<span id="an-total-marks">0</span></span></h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#4318FF]" style="width: 0%" id="bar-score"></div></div></div>
+                        <div class="an-card"><p class="an-label">ATTEMPTED</p><h3 class="an-value text-[#FF9E2C]"><span id="an-attempt">0</span><span class="an-sub">/<span id="an-total-qs">0</span></span></h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#FF9E2C]" style="width: 0%" id="bar-attempt"></div></div></div>
+                        <div class="an-card"><p class="an-label">TIME TAKEN</p><h3 class="an-value text-[#05CD99] text-xl" id="an-time">00:00</h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#05CD99]" style="width: 100%"></div></div></div>
+                        <div class="an-card"><p class="an-label">RANK</p><h3 class="an-value text-[#D32F2F]"><span id="an-rank">--</span><span id="an-total-users" class="an-sub">/--</span></h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#D32F2F]" style="width: 70%"></div></div></div>
+                        <div class="an-card"><p class="an-label">PERCENTAGE</p><h3 class="an-value text-[#4318FF]"><span id="an-perc">0</span>%</h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#4318FF]" style="width: 0%" id="bar-perc"></div></div></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">MARKS DISTRIBUTION</h4>
+                            <div class="space-y-2">
+                                <div class="dist-row"><div class="flex items-center gap-4"><span class="smiley">😃</span><span class="text-xs font-bold text-gray-500 uppercase tracking-wide">POSITIVE MARKS</span></div><div class="text-xl font-bold text-gray-800" id="dist-pos">+0</div></div>
+                                <div class="dist-row"><div class="flex items-center gap-4"><span class="smiley">😟</span><span class="text-xs font-bold text-gray-500 uppercase tracking-wide">NEGATIVE MARKS</span></div><div class="text-xl font-bold text-gray-800" id="dist-neg">0</div></div>
+                                <div class="dist-row"><div class="flex items-center gap-4"><span class="smiley">😐</span><span class="text-xs font-bold text-gray-500 uppercase tracking-wide">LEFT MARKS</span></div><div class="text-xl font-bold text-gray-800" id="dist-left">0</div></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col min-h-[300px]">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">Accuracy Snapshot</h4>
+                            <canvas id="chartTimeAnalysis"></canvas>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col min-h-[300px]">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">Topic Strength</h4>
+                            <canvas id="chartDiffAnalysis"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="an-solutions" class="hidden">
+                    <div class="flex gap-2 mb-6">
+                        <button class="sol-filter active" onclick="filterSol('all')">All</button>
+                        <button class="sol-filter" onclick="filterSol('correct')">Correct</button>
+                        <button class="sol-filter" onclick="filterSol('wrong')">Incorrect</button>
+                        <button class="sol-filter" onclick="filterSol('skipped')">Skipped</button>
+                    </div>
+                    <div id="solutions-list" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="view-leaderboard" class="hidden fade-in">
+            <div class="dashboard-card max-w-4xl mx-auto">
+                 <h3 class="text-xl font-bold text-[#2B3674] mb-6">Local Leaderboard</h3>
+                 <div id="leaderboard-list" class="space-y-3"></div>
+            </div>
+        </div>
+       <div id="view-all-users" class="hidden fade-in space-y-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-[#2B3674]">Registered Students</h2>
+        <span class="bg-indigo-100 text-[#4318FF] px-4 py-1.5 rounded-full text-xs font-bold" id="total-user-count">0 Total</span>
+    </div>
+
+    <div class="bg-white rounded-[30px] p-6 shadow-sm border border-gray-50">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-[#A3AED0] text-[10px] uppercase tracking-wider border-b border-gray-100">
+                        <th class="pb-4 pl-2">Student Name</th>
+                        <th class="pb-4">User ID (UID)</th>
+                        <th class="pb-4">Joined Date</th>
+                        <th class="pb-4 text-center">Delete Account</th>
+                    </tr>
+                </thead>
+                <tbody id="all-users-list" class="text-sm">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-quiz" class="hidden quiz-modal">
+        <div class="q-header">
+            <div class="flex items-center gap-4">
+                <span class="text-xl font-extrabold text-[#4318FF]">ExamWarmUp</span>
+                <span class="q-info-badge" id="pal-sec-name">NIMCET MOCK</span>
+                <span class="text-sm font-bold text-[#2B3674] hidden sm:block" id="q-title-display">Full Length Mock Test 1</span>
+            </div>
+           <div class="flex items-center gap-6">
+                <div class="text-right border-r pr-4 border-gray-200">
+                    <p class="text-[10px] text-orange-500 font-bold uppercase" id="sec-label">Math Section Time</p>
+                    <div class="text-lg font-bold font-mono text-orange-600" id="sec-timer">00:00</div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-[#A3AED0] font-bold uppercase">Total Time Left</p>
+                    <div class="text-xl font-bold font-mono text-[#2B3674]" id="q-timer">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="q-layout">
+            <div class="q-left">
+                <div class="q-tabs" id="q-sections"></div>
+                <div class="q-content-box">
+                    <div class="q-meta">
+                        <span class="text-lg font-bold text-[#2B3674]" id="q-num">Question No. 1</span>
+                    </div>
+                    <div class="q-text" id="q-text">Loading question...</div>
+                    <div id="q-img-box" class="mb-6 hidden"><img id="q-img-view" class="max-h-64 rounded-xl border border-gray-100 shadow-sm"></div>
+                    <div class="space-y-3" id="q-options"></div>
+                </div>
+                <div class="q-footer">
+                    <div class="flex gap-3">
+                        <button onclick="markReview()" class="px-4 py-2 rounded-xl text-sm font-bold border border-[#4318FF] text-[#4318FF]">Mark for Review & Next</button>
+                        <button onclick="clearRes()" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200">Clear Response</button>
+                    </div>
+                    <button onclick="saveNext()" class="px-6 py-2 rounded-xl bg-[#05CD99] text-white font-bold shadow-lg shadow-green-100">Save & Next</button>
+                </div>
+            </div>
+
+            <div class="q-right hidden md:flex">
+                <div class="p-6 border-b flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#F4F7FE] flex items-center justify-center text-[#4318FF] font-bold" id="exam-avatar">U</div>
+                    <div><p class="text-sm font-bold" id="exam-user-name">Candidate</p></div>
+                </div>
+                <div class="pal-legend">
+                    <div class="leg-item flex items-center gap-2"><span class="leg-circle st-ans">0</span> Answered</div>
+                    <div class="leg-item flex items-center gap-2"><span class="leg-circle st-not-ans">0</span> Not Answered</div>
+                    <div class="leg-item flex items-center gap-2"><span class="leg-circle bg-white border border-gray-300 text-gray-400">0</span> Not Visited</div>
+                    <div class="leg-item flex items-center gap-2"><span class="leg-circle st-rev">0</span> Review</div>
+                </div>
+                <div class="pal-grid-area">
+                    <div class="pal-title font-bold text-xs mb-4 uppercase text-gray-400">Question Palette</div>
+                    <div class="grid-box" id="pal-grid"></div>
+                </div>
+                <div class="p-4 border-t bg-white">
+                    <button onclick="submitQuiz()" class="w-full py-3 rounded-xl bg-[#4318FF] text-white font-bold hover:bg-[#3311CC]">Submit Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Builder Modal -->
+    <div id="modal-add" class="hidden fixed inset-0 bg-[#2B3674]/40 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-6 border-b flex justify-between items-center bg-white">
+                <h3 class="text-xl font-extrabold text-[#2B3674]" id="modal-add-title">Manage Dynamic Test Paper</h3>
+                <button onclick="closeAddModal()" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="flex bg-gray-50 border-b px-6">
+                <div class="builder-tab active" id="tab-manual" onclick="switchBuilderTab('manual')">Manual Builder</div>
+                <div class="builder-tab" id="tab-json" onclick="switchBuilderTab('json')">JSON Editor</div>
+            </div>
+
+            <div class="p-8 overflow-y-auto flex-1 bg-[#F4F7FE]/30" id="builder-body">
+                <input type="hidden" id="edit-test-id">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Test Title</label>
+                        <input type="text" id="new-title" class="w-full bg-white border-none rounded-xl px-4 py-3 font-semibold shadow-sm outline-none" placeholder="e.g. Mock Test #1">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Category</label>
+                        <select id="new-test-cat" class="w-full bg-white border-none rounded-xl px-4 py-3 font-semibold shadow-sm outline-none">
+                            <option value="full">Full Mock</option>
+                            <option value="daily">Daily Warmup</option>
+                            <option value="pyq">PYQ Paper</option>
+                            <option value="sec_Math">Sectional Math</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Time (Mins)</label>
+                        <input type="number" id="new-test-time" class="w-full bg-white border-none rounded-xl px-4 py-3 font-semibold shadow-sm outline-none" placeholder="120">
+                    </div>
+                </div>
+
+                <div id="mode-manual" class="space-y-6">
+                    <div id="dynamic-questions-list"></div>
+                    <button onclick="addNewQuestionField()" class="w-full py-4 border-2 border-dashed border-[#4318FF]/30 rounded-2xl text-[#4318FF] font-bold hover:bg-[#4318FF]/5 transition-all">+ Add New Question</button>
+                </div>
+
+                <div id="mode-json" class="hidden h-full">
+                    <div class="mb-4 bg-indigo-50 p-4 rounded-xl text-[#4318FF] text-[10px] font-bold uppercase tracking-wider">
+                        JSON Example Schema (Paste Array of Objects)
+                    </div>
+                    <!-- Helper Schema Box -->
+                    <div class="bg-gray-800 text-green-400 p-4 rounded-xl text-[11px] font-mono mb-4 shadow-inner overflow-x-auto whitespace-pre">
+[
+  {
+    "text": "Your Question Text here...",
+    "sub": "Math", 
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct": 0,
+    "qImg": null,
+    "optImgs": [null, null, null, null],
+    "sol": "Optional solution text here..."
+  }
+]</div>
+                    <textarea id="json-input" class="w-full h-64 bg-gray-900 text-green-400 font-mono text-sm p-6 rounded-2xl outline-none shadow-inner" placeholder="Paste your JSON array here..."></textarea>
+                </div>
+            </div>
+
+            <div class="p-6 border-t bg-white flex justify-end gap-3">
+                <button onclick="closeAddModal()" class="px-8 py-3 font-bold text-gray-400 hover:text-gray-600 transition">Cancel</button>
+                <button onclick="saveTest()" class="bg-[#4318FF] text-white px-10 py-3 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:scale-[1.02] transition">Publish Paper</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-2xl z-[100] transition-all">
+    Test Submitted Successfully!
+    </div>
+     
+
+
+
+
+    <script src="app.js"></script>
+</body>
+</html>
+

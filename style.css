@@ -1,0 +1,303 @@
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F4F7FE; color: #2B3674; margin: 0; overflow-x: hidden; }
+       
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+       
+/* Table container ko scrollable banane ke liye */
+.recent-activity-container {
+    max-height: 400px; /* Aap apne hisaab se height kam/zyada kar sakte hain */
+    overflow-y: auto;  /* Vertical scrollbar tabhi dikhega jab data zyada hoga */
+    padding-right: 5px;
+}
+
+/* Scrollbar ko thoda sundar banane ke liye (Optional) */
+.recent-activity-container::-webkit-scrollbar {
+    width: 6px;
+}
+.recent-activity-container::-webkit-scrollbar-thumb {
+    background: #e0e5f2;
+    border-radius: 10px;
+}
+
+        #global-loader { 
+    transition: opacity 0.5s ease-in-out; 
+  
+    background: rgba(244, 247, 254, 0.6); 
+    /* Glass blur effect */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.stack-wrapper {
+    width: 60px;
+    height: 70px;
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.layer {
+    width: 50px;
+    height: 12px;
+    background: #4318FF; 
+    border-radius: 4px;
+    position: absolute;
+    transform: skewY(-20deg);
+    box-shadow: 0 4px 15px rgba(67, 24, 255, 0.4);
+    animation: wave-glide 2s infinite ease-in-out;
+}
+
+.l1 { top: 0px; animation-delay: 0s; }
+.l2 { top: 20px; animation-delay: 0.2s; }
+.l3 { top: 40px; animation-delay: 0.4s; }
+
+@keyframes wave-glide {
+    0%, 100% { 
+        transform: skewY(-20deg) translateX(-20px); 
+        opacity: 0; 
+        filter: blur(2px); 
+    }
+    50% { 
+        transform: skewY(-20deg) translateX(0); 
+        opacity: 1; 
+        filter: blur(0px); 
+    }
+    80% { 
+        transform: skewY(-20deg) translateX(20px); 
+        opacity: 0; 
+        filter: blur(1px); 
+    }
+}
+
+
+
+
+
+.hidden {
+    display: none !important;
+}
+
+/* Active tab ka look sudharne ke liye */
+.builder-tab {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.builder-tab.active {
+    border-bottom: 3px solid #4318FF;
+    color: #4318FF !important;
+    font-weight: 800;
+}
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- DASHBOARD STYLES --- */
+        .sidebar { background: white; width: 280px; height: 100vh; position: fixed; left: 0; top: 0; z-index: 40; border-right: 1px solid #E0E5F2; display: flex; flex-direction: column; transition: transform 0.3s; }
+        .sidebar.closed { transform: translateX(-100%); }
+        
+        .nav-link { display: flex; align-items: center; gap: 14px; padding: 14px 24px; color: #A3AED0; font-weight: 600; font-size: 14px; margin: 4px 16px; border-radius: 12px; transition: all 0.2s; cursor: pointer; }
+        .nav-link:hover { color: #4318FF; background: #F4F7FE; }
+        .nav-link.active { background: #4318FF; color: white; box-shadow: 0 10px 20px -10px rgba(67, 24, 255, 0.6); }
+        .nav-link i { width: 20px; text-align: center; }
+
+        .main-content { margin-left: 280px; padding: 30px; transition: margin 0.3s; min-height: 100vh; }
+        .main-content.full { margin-left: 0; }
+
+        .stat-card { background: white; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 18px; box-shadow: 0 18px 40px rgba(112, 144, 176, 0.12); transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-icon { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+
+   /* Upload Button ko bada aur stylish banane ke liye */
+.upload-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #FF3B6B 0%, #FF5C8D 100%); /* Gradient look */
+    color: white;
+    padding: 12px 28px; /* Padding badha di */
+    border-radius: 50px; /* Pill shape */
+    font-weight: 800; /* Extra bold font */
+    font-size: 16px; /* Font size bada kiya */
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(255, 59, 107, 0.2); /* Soft shadow */
+    border: none;
+    cursor: pointer;
+}
+
+.upload-btn i {
+    font-size: 20px; /* Icon size bada kiya */
+}
+
+.upload-btn:hover {
+    transform: translateY(-2px); /* Hover par thoda upar uthega */
+    box-shadow: 0 15px 25px rgba(255, 59, 107, 0.3);
+    filter: brightness(1.1);
+}
+
+.upload-btn:active {
+    transform: scale(0.95); /* Click karne par chota hoga */
+}
+
+        /* --- DASHBOARD CARDS & ANALYSIS --- */
+        .dashboard-card { background: white; border-radius: 20px; padding: 24px; box-shadow: 0px 18px 40px rgba(112, 144, 176, 0.12); border: none; transition: transform 0.2s; }
+
+        .an-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #F0F0F0; display: flex; flex-direction: column; justify-content: space-between; height: 110px; }
+        .an-label { font-size: 11px; font-weight: 700; color: #A3AED0; text-transform: uppercase; margin-bottom: 8px; }
+        .an-value { font-size: 22px; font-weight: 800; color: #2B3674; display: flex; align-items: baseline; gap: 4px; }
+        .an-sub { font-size: 12px; color: #A3AED0; font-weight: 600; }
+        .an-bar-bg { width: 100%; height: 6px; background: #F4F7FE; border-radius: 10px; margin-top: auto; overflow: hidden; }
+        .an-bar-fill { height: 100%; border-radius: 10px; transition: width 0.6s ease; }
+
+        .an-tab { padding: 0 20px 10px 20px; font-size: 13px; font-weight: 700; color: #A3AED0; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .an-tab.active { color: #4318FF; border-bottom-color: #4318FF; }
+
+        .dist-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #F4F7FE; }
+        .smiley { font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+
+        .sol-filter { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #E0E5F2; color: #A3AED0; background: white; transition: 0.2s; }
+        .sol-filter.active { background: #4318FF; color: white; border-color: #4318FF; }
+
+        /* --- MOCK TEST UI --- */
+        .quiz-modal { position: fixed; inset: 0; background: #fff; z-index: 50; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .q-header { height: 64px; background: #F8F9FD; border-bottom: 1px solid #E0E5F2; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+        .q-info-badge { background: #4318FF; color: white; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 700; margin-right: 10px; }
+        .q-layout { display: flex; flex: 1; overflow: hidden; }
+        
+        .q-left { flex: 1; display: flex; flex-direction: column; background: white; }
+        .q-tabs { display: flex; border-bottom: 1px solid #E0E5F2; padding: 0 24px; background: white; overflow-x: auto; }
+        .q-tab { padding: 16px 20px; font-size: 14px; font-weight: 600; color: #A3AED0; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; white-space: nowrap; }
+        .q-tab.active { color: #4318FF; border-bottom-color: #4318FF; background: #F4F7FE; }
+
+        .q-content-box { flex: 1; padding: 30px 40px; overflow-y: auto; }
+        .q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #F4F7FE; padding-bottom: 16px; }
+        .q-text { font-size: 16px; font-weight: 500; color: #1B2559; line-height: 1.6; margin-bottom: 30px; }
+        
+        .q-opt { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border: 1px solid #E0E5F2; border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .q-opt:hover { border-color: #4318FF; background: #F4F7FE; }
+        .q-opt.selected { border-color: #4318FF; background: #EFF4FF; box-shadow: 0 4px 10px rgba(67, 24, 255, 0.1); }
+        .opt-radio { width: 22px; height: 22px; border: 2px solid #A3AED0; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .q-opt.selected .opt-radio { border-color: #4318FF; background: #4318FF; }
+        .opt-radio::after { content: ''; width: 8px; height: 8px; background: white; border-radius: 50%; display: block; }
+
+        .q-footer { height: 72px; border-top: 1px solid #E0E5F2; padding: 0 30px; display: flex; align-items: center; justify-content: space-between; background: white; }
+
+        /* Right: Palette */
+        .q-right { width: 340px; border-left: 1px solid #E0E5F2; display: flex; flex-direction: column; background: #F8F9FC; }
+        .pal-legend { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; font-weight: 600; color: #707EAE; background: white; border-bottom: 1px solid #E0E5F2; }
+        .leg-circle { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; }
+        
+        .pal-grid-area { flex: 1; padding: 16px; overflow-y: auto; }
+        .pal-title { font-size: 12px; font-weight: 700; color: white; background: #4318FF; padding: 8px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; }
+        .grid-box { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .p-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #E0E5F2; background: white; color: #2B3674; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        
+        /* State Colors */
+        .st-ans { background: #05CD99; color: white; border-color: #05CD99; clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%); border-radius: 0; }
+        .st-not-ans { background: #EE5D50; color: white; border-color: #EE5D50; border-radius: 6px; }
+        .st-rev { background: #868CFF; color: white; border-radius: 50%; }
+        .st-ans-rev { background: #868CFF; color: white; position: relative; }
+        .st-ans-rev::after { content: '✓'; position: absolute; font-size: 8px; top: -4px; right: -4px; background: #05CD99; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .st-curr { border: 2px solid #4318FF; color: #4318FF; transform: scale(1.1); }
+
+       
+#auth-screen { 
+    position: fixed; 
+    inset: 0; 
+    /* Background ko transparent rakha hai taaki niche ka dashboard dikhe */
+    background: rgba(244, 247, 254, 0.3); 
+    z-index: 100; 
+    backdrop-filter: blur(8px); /* Pure page ko halka blur karne ke liye */
+}
+
+/* Auth card ko glass jaisa banane ke liye */
+#auth-screen > div { 
+    background: rgba(255, 255, 255, 0.7) !important; /* Semi-transparent white */
+    backdrop-filter: blur(16px) saturate(180%); /* Card ke piche ka blur */
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1); /* Soft shadow */
+}
+
+        #auth-screen.hidden { display: none !important; }
+
+        /* Builder Tab Styling */
+        .builder-tab { padding: 12px 24px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; color: #A3AED0; transition: 0.2s; }
+        .builder-tab.active { color: #4318FF; border-bottom-color: #4318FF; }
+        
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .q-right { display: none; }
+        }
+
+        /* --- Responsive Adjustments --- */
+
+@media (max-width: 768px) {
+    /* Main Content padding kam karein mobile ke liye */
+    .main-content {
+        padding: 15px;
+        margin-top: 60px; /* Top nav ke liye jagah */
+    }
+
+    /* Cards ko stack karein aur padding manage karein */
+    .stat-card {
+        padding: 16px;
+    }
+
+    /* Modal (Quiz aur Builder) ko full screen karein mobile par */
+    #modal-add > div, #modal-instructions > div {
+        max-height: 100vh;
+        width: 100%;
+        border-radius: 0;
+    }
+
+    /* Quiz Header ko compact banayein */
+    .q-header {
+        padding: 0 12px;
+        height: auto;
+        flex-direction: column;
+        padding-bottom: 10px;
+    }
+
+    .q-content-box {
+        padding: 20px 15px;
+    }
+
+    /* Options ka text size mobile ke liye perfect karein */
+    .q-text {
+        font-size: 15px;
+    }
+
+    .q-footer {
+        flex-direction: column;
+        height: auto;
+        padding: 15px;
+        gap: 10px;
+    }
+
+    .q-footer button {
+        width: 100%;
+    }
+
+    /* Grid layout fix for mobile stats */
+    .grid-cols-5 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Sidebar overlay for mobile */
+#sidebar-overlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    #sidebar-overlay.active {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 35;
+    }
+}
