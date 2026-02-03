@@ -1049,23 +1049,55 @@ function handleImg(input) {
     }
 }
 
-function openAddModal(ctx, tid = null) {
-    document.getElementById('modal-add').classList.remove('hidden');
-    document.getElementById('dynamic-questions-list').innerHTML = '';
+async function openAddModal(ctx, tid = null) {
+    const modal = document.getElementById('modal-add');
+    const listContainer = document.getElementById('dynamic-questions-list');
+    const titleInput = document.getElementById('new-title');
+    const timeInput = document.getElementById('new-test-time');
+    const catInput = document.getElementById('new-test-cat');
+    const editIdInput = document.getElementById('edit-test-id');
+
+    // 1. UI Reset karein
+    modal.classList.remove('hidden');
+    listContainer.innerHTML = '';
     document.getElementById('json-input').value = '';
-    document.getElementById('edit-test-id').value = tid || '';
+    editIdInput.value = tid || ''; // Edit ID set karein taaki publish ke waqt update ho
     switchBuilderTab('manual');
 
     if (tid) {
-        const t = getDB().tests.find(x => x.id === tid);
-        document.getElementById('new-title').value = t.title;
-        document.getElementById('new-test-time').value = t.time;
-        document.getElementById('new-test-cat').value = t.category;
-        t.qs.forEach(q => addNewQuestionField(q));
-        console.log("Edit mode for tid:", tid);
+        showLoader("Fetching test from cloud...");
+        try {
+            // 2. Firebase se data fetch karein (Local storage ki jagah)
+            const snapshot = await db_fb.ref('tests/' + tid).once('value');
+            const t = snapshot.val();
+
+            if (t) {
+                // 3. Main fields fill karein
+                titleInput.value = t.title || '';
+                timeInput.value = t.time || 120;
+                catInput.value = t.category || 'full';
+
+                // 4. Questions load karein
+                const questions = t.qs || t.questions || [];
+                if (questions.length > 0) {
+                    questions.forEach(q => addNewQuestionField(q));
+                } else {
+                    addNewQuestionField(); 
+                }
+                showToast("Data Loaded Successfully", "success");
+            } else {
+                showToast("Test not found in Database", "error");
+            }
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            showToast("Cloud sync failed!", "error");
+        } finally {
+            hideLoader();
+        }
     } else {
-        document.getElementById('new-title').value = '';
-        document.getElementById('new-test-time').value = 120;
+        // Create Mode logic
+        titleInput.value = '';
+        timeInput.value = 120;
         addNewQuestionField();
     }
 }
