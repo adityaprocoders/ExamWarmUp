@@ -1049,6 +1049,7 @@ function handleImg(input) {
     }
 }
 
+
 async function openAddModal(ctx, tid = null) {
     const modal = document.getElementById('modal-add');
     const listContainer = document.getElementById('dynamic-questions-list');
@@ -1056,28 +1057,31 @@ async function openAddModal(ctx, tid = null) {
     const timeInput = document.getElementById('new-test-time');
     const catInput = document.getElementById('new-test-cat');
     const editIdInput = document.getElementById('edit-test-id');
+    
+    // --- NEW: Jump Box ko select karein ---
+    const jumpContainer = document.getElementById('quick-jump-container');
 
     // 1. UI Reset karein
     modal.classList.remove('hidden');
     listContainer.innerHTML = '';
     document.getElementById('json-input').value = '';
-    editIdInput.value = tid || ''; // Edit ID set karein taaki publish ke waqt update ho
+    editIdInput.value = tid || ''; 
     switchBuilderTab('manual');
 
     if (tid) {
+        // --- NEW: Edit mode hai to Jump Box dikhao ---
+        if (jumpContainer) jumpContainer.classList.remove('hidden');
+
         showLoader("Fetching test from cloud...");
         try {
-            // 2. Firebase se data fetch karein (Local storage ki jagah)
             const snapshot = await db_fb.ref('tests/' + tid).once('value');
             const t = snapshot.val();
 
             if (t) {
-                // 3. Main fields fill karein
                 titleInput.value = t.title || '';
                 timeInput.value = t.time || 120;
                 catInput.value = t.category || 'full';
 
-                // 4. Questions load karein
                 const questions = t.qs || t.questions || [];
                 if (questions.length > 0) {
                     questions.forEach(q => addNewQuestionField(q));
@@ -1095,6 +1099,9 @@ async function openAddModal(ctx, tid = null) {
             hideLoader();
         }
     } else {
+        // --- NEW: Naya test hai (tid == null) to Jump Box chhupa do ---
+        if (jumpContainer) jumpContainer.classList.add('hidden');
+
         // Create Mode logic
         titleInput.value = '';
         timeInput.value = 120;
@@ -1102,25 +1109,72 @@ async function openAddModal(ctx, tid = null) {
     }
 }
 
+// --- NEW: Ye function bhi app.js mein niche add kar dena ---
+function scrollToQuestion() {
+    const qNum = document.getElementById('jump-q-number').value;
+    if (!qNum) return;
+
+    const target = document.getElementById(`q-block-${qNum}`);
+
+    if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Highlight effect
+        target.style.transition = "all 0.5s ease";
+        target.style.transform = "scale(1.02)";
+        target.style.boxShadow = "0 0 25px rgba(67, 24, 255, 0.3)";
+        target.style.borderColor = "#4318FF";
+
+        setTimeout(() => {
+            target.style.transform = "scale(1)";
+            target.style.boxShadow = "";
+            target.style.borderColor = "";
+        }, 2000);
+        
+        // Number input ko clear karne ke liye (Optional)
+        document.getElementById('jump-q-number').value = '';
+    } else {
+        showToast(`Question ${qNum} nahi mila!`, "error");
+    }
+}
+
+
+
 function closeAddModal() { document.getElementById('modal-add').classList.add('hidden'); }
+
+
 
 function addNewQuestionField(data = null) {
     const container = document.getElementById('dynamic-questions-list');
+    const qCount = container.children.length + 1; // Current count for display
     const qIndex = Date.now() + Math.random();
     const qDiv = document.createElement('div');
-    qDiv.className = "bg-white p-6 rounded-3xl border-2 border-[#4318FF]/10 shadow-sm relative mb-4";
+
+    // ID assign karein jump feature ke liye
+    qDiv.id = `q-block-${qCount}`;
+    qDiv.className = "bg-white p-6 rounded-3xl border-2 border-[#4318FF]/10 shadow-sm relative mb-6 transition-all duration-500";
     
     qDiv.innerHTML = `
         <div class="flex justify-between items-start mb-4">
-            <select class="q-sub bg-[#F4F7FE] border-none rounded-xl px-4 py-2 text-sm font-bold">
-                <option value="Math" ${data?.sub==='Math'?'selected':''}>Mathematics</option>
-                <option value="Comp" ${data?.sub==='Comp'?'selected':''}>Computer</option>
-                <option value="Reas" ${data?.sub==='Reas'?'selected':''}>Reasoning</option>
-                <option value="Eng" ${data?.sub==='Eng'?'selected':''}>English</option>
-            </select>
-            <button onclick="this.parentElement.parentElement.remove()" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button>
+            <div class="flex items-center gap-3">
+                <div class="bg-[#4318FF] text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-100">
+                    Q${qCount}
+                </div>
+
+                <select class="q-sub bg-[#F4F7FE] border-none rounded-xl px-4 py-2 text-sm font-bold text-[#2B3674] outline-none">
+                    <option value="Math" ${data?.sub==='Math'?'selected':''}>Mathematics</option>
+                    <option value="Comp" ${data?.sub==='Comp'?'selected':''}>Computer</option>
+                    <option value="Reas" ${data?.sub==='Reas'?'selected':''}>Reasoning</option>
+                    <option value="Eng" ${data?.sub==='Eng'?'selected':''}>English</option>
+                </select>
+            </div>
+            
+            <button onclick="removeQuestionBlock(this)" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
+                <i class="fas fa-trash-alt text-xs"></i>
+            </button>
         </div>
-        <textarea class="q-text-input w-full bg-[#F4F7FE] border-none rounded-xl px-4 py-3 text-sm mb-4 h-20 outline-none" placeholder="Enter Question...">${data?.text || ''}</textarea>
+
+        <textarea class="q-text-input w-full bg-[#F4F7FE] border-none rounded-2xl px-5 py-4 text-sm mb-4 h-24 outline-none focus:ring-2 focus:ring-[#4318FF]/20 font-medium" placeholder="Enter Question...">${data?.text || ''}</textarea>
         
         <div class="mb-4 bg-gray-50 p-4 rounded-xl border border-dashed text-center">
             <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">Question Photo (Optional)</label>
