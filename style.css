@@ -1,10 +1,15 @@
 
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F4F7FE; color: #2B3674; margin: 0; overflow-x: hidden; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F4F7FE; color: #2B3674; margin: 0; overflow-x: hidden;  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;}
        
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
        
+   
+
+
+
+
 /* Table container ko scrollable banane ke liye */
 .recent-activity-container {
     max-height: 400px; /* Aap apne hisaab se height kam/zyada kar sakte hain */
@@ -171,7 +176,7 @@
 
         .q-content-box { flex: 1; padding: 30px 40px; overflow-y: auto; }
         .q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #F4F7FE; padding-bottom: 16px; }
-        .q-text { font-size: 16px; font-weight: 500; color: #1B2559; line-height: 1.6; margin-bottom: 30px; }
+        .q-text { font-size: 18px; font-weight: 600; color: #1B2559; line-height: 1.6; margin-bottom: 30px; }
         
         .q-opt { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border: 1px solid #E0E5F2; border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
         .q-opt:hover { border-color: #4318FF; background: #F4F7FE; }
