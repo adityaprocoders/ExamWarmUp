@@ -1274,6 +1274,40 @@ function addNewQuestionField(data = null) {
 }
 
 
+// 2. DELETE FUNCTION ( addNewQuestionField ke bahar rakhein)
+function removeQuestionBlock(btn) {
+    const container = document.getElementById('dynamic-questions-list');
+    
+    if (container.children.length <= 1) {
+        showToast("at lelast one question in this!", "error");
+        return;
+    }
+
+    if (confirm("Do you want to remvoe this question?")) {
+        const block = btn.closest('.bg-white'); 
+        block.classList.add('opacity-0', 'scale-95'); 
+        
+        setTimeout(() => {
+            block.remove();
+            reorderQuestionNumbers(); 
+            showToast("Question removed", "info");
+        }, 300);
+    }
+}
+
+// 3. REORDER FUNCTION ( addNewQuestionField ke bahar rakhein)
+function reorderQuestionNumbers() {
+    const blocks = document.querySelectorAll('#dynamic-questions-list > div');
+    blocks.forEach((block, idx) => {
+        const qNumDiv = block.querySelector('.bg-[#4318FF]');
+        if (qNumDiv) {
+            qNumDiv.innerText = `Q${idx + 1}`;
+        }
+        block.id = `q-block-${idx + 1}`;
+    });
+}
+
+
 
 
 function deleteTest(tid, cat) {
