@@ -11,6 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -322,7 +323,13 @@
                         <div class="an-card"><p class="an-label">ATTEMPTED</p><h3 class="an-value text-[#FF9E2C]"><span id="an-attempt">0</span><span class="an-sub">/<span id="an-total-qs">0</span></span></h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#FF9E2C]" style="width: 0%" id="bar-attempt"></div></div></div>
                         <div class="an-card"><p class="an-label">TIME TAKEN</p><h3 class="an-value text-[#05CD99] text-xl" id="an-time">00:00</h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#05CD99]" style="width: 100%"></div></div></div>
                         <div class="an-card"><p class="an-label">RANK</p><h3 class="an-value text-[#D32F2F]"><span id="an-rank">--</span><span id="an-total-users" class="an-sub">/--</span></h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#D32F2F]" style="width: 70%"></div></div></div>
-                        <div class="an-card"><p class="an-label">PERCENTAGE</p><h3 class="an-value text-[#4318FF]"><span id="an-perc">0</span>%</h3><div class="an-bar-bg"><div class="an-bar-fill bg-[#4318FF]" style="width: 0%" id="bar-perc"></div></div></div>
+                        <div class="an-card">
+    <p class="an-label">ACCURACY</p>
+    <h3 class="an-value text-[#4318FF]"><span id="an-accuracy">0</span>%</h3>
+    <div class="an-bar-bg">
+        <div class="an-bar-fill bg-[#4318FF]" style="width: 0%" id="bar-accuracy"></div>
+    </div>
+</div>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -536,4 +543,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
