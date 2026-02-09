@@ -1057,11 +1057,11 @@ function getEstimatedAIR(score) {
     const data = [
         [1000, 1],   
         [680, 2],   
-        [600, 20],  
+        [600, 10],  
         [550, 70],   
-        [500, 150],  
-        [450, 400],  
-        [400, 550],  
+        [500, 100],  
+        [450, 200],  
+        [400, 300],  
         [350, 800], 
         [300, 1200], 
         [250, 2000], 
@@ -1774,9 +1774,18 @@ function showAnalysis(res) {
     }
 
     switchView('analysis');
+    
+    // 1. Existing Logic (Percentage based on Score)
     const perc = Math.round((res.score / res.max) * 100) || 0;
+    
+    // 2. New Logic (Accuracy based on Attempted Questions)
+    // Formula: (Correct Questions / Attempted Questions) * 100
+    const accuracy = res.attempted > 0 ? Math.round((res.correct / res.attempted) * 100) : 0;
+    
     const rank = getEstimatedAIR(res.score);
     window.currentRes = res;
+
+    // UI Updates - Basic Info
     document.getElementById('an-score').innerText = res.score;
     document.getElementById('an-total-marks').innerText = res.max;
     document.getElementById('an-attempt').innerText = res.attempted;
@@ -1784,23 +1793,28 @@ function showAnalysis(res) {
     document.getElementById('an-time').innerText = res.timeTaken;
     document.getElementById('an-rank').innerText = rank; 
     document.getElementById('an-total-users').innerText = "90,000+"; 
-    document.getElementById('an-perc').innerText = perc;
+
+    // Percentage Update (Purana Logic)
+    if(document.getElementById('an-perc')) {
+        document.getElementById('an-perc').innerText = perc + "%";
+    }
+    if(document.getElementById('bar-perc')) {
+        document.getElementById('bar-perc').style.width = Math.max(0, perc) + '%';
+    }
+
+    // Accuracy Update (Naya Logic)
+    const accEl = document.getElementById('an-accuracy');
+    const accBar = document.getElementById('bar-accuracy');
+    if(accEl) accEl.innerText = accuracy;
+    if(accBar) accBar.style.width = accuracy + '%';
+
+    // UI Bars for Score & Attempt
     document.getElementById('bar-score').style.width = Math.max(0, perc) + '%';
     document.getElementById('bar-attempt').style.width = Math.round((res.attempted/res.totalQs)*100) + '%';
-    document.getElementById('bar-perc').style.width = Math.max(0, perc) + '%';
+    
+    // Marks Distribution
     document.getElementById('dist-pos').innerText = '+' + res.posMarks;
     document.getElementById('dist-neg').innerText = '-' + res.negMarks;
-    document.getElementById('an-perc').innerText = perc + "%";
-
-     
-
-    // 3. UI Bars Update
-    document.getElementById('bar-score').style.width = Math.max(0, perc) + '%';
-    document.getElementById('bar-attempt').style.width = Math.round((res.attempted/res.totalQs)*100) + '%';
-    document.getElementById('bar-perc').style.width = Math.max(0, perc) + '%';
-    document.getElementById('dist-pos').innerText = '+' + res.posMarks;
-    document.getElementById('dist-neg').innerText = '-' + res.negMarks;
-
 
     // 4. Charts Update
     analysisCharts.forEach(c => c.destroy()); 
@@ -1820,12 +1834,9 @@ function showAnalysis(res) {
 
     filterSol('all');
     
-    // 5. LaTeX Rendering Fix (Mathematics readability ke liye)
     if(window.MathJax && MathJax.typesetPromise) {
         MathJax.typesetPromise().catch((err) => console.log(err));
     }
-
-
 }
 
 function switchAnalysisTab(tab) {
