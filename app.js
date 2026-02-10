@@ -311,27 +311,30 @@ async function deleteUserPermanently(uid, name) {
 
 
 function loadDashboard() {
-    
     const user = auth_fb.currentUser;
 
     if (!user) {
-        console.log("No user session found, waiting for auth...");
+        console.log("No user session found.");
+        resetDashboardUI(); // Step 2 wala function
         return; 
     }
 
     const userId = user.uid;
-    console.log("Loading data for user:", userId);
+    
+    // UI ko pehle "Loading..." state mein daal dein taaki purana data na dikhe
+    if(document.getElementById('dash-attempts')) document.getElementById('dash-attempts').innerText = '--';
+    if(document.getElementById('dash-avg')) document.getElementById('dash-avg').innerText = '--';
 
-    // 1. DYNAMIC TOTAL TESTS COUNT (Firebase se total tests nikalne ke liye)
-    db_fb.ref('tests').on('value', (snapshot) => {
-        const totalTests = snapshot.numChildren(); // Yeh total records count karta hai
+    // 1. DYNAMIC TOTAL TESTS (Sabke liye common)
+    db_fb.ref('tests').once('value', (snapshot) => {
+        const totalTests = snapshot.numChildren();
         const dashTestsEl = document.getElementById('dash-tests');
-        if (dashTestsEl) {
-            dashTestsEl.innerText = totalTests; 
-        }
+        if (dashTestsEl) dashTestsEl.innerText = totalTests; 
     });
 
-    // 2. USER SPECIFIC STATS (Attempts aur Scores ke liye)
+    // 2. USER SPECIFIC DATA (Sirf is Student ka)
+    // .off() ka use karein taaki purane listeners band ho jayein aur overlap na ho
+    db_fb.ref('results/' + userId).off(); 
     db_fb.ref('results/' + userId).on('value', (snapshot) => {
         const history = [];
         snapshot.forEach(child => {
@@ -344,7 +347,7 @@ function loadDashboard() {
         const totalScore = userHistory.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0);
         const avgScore = totalAttempts > 0 ? Math.round(totalScore / totalAttempts) : 0;
 
-        // UI Update
+        // UI Update logic (Aapka original logic)
         const attemptsEl = document.getElementById('dash-attempts');
         const avgEl = document.getElementById('dash-avg');
         
@@ -353,11 +356,11 @@ function loadDashboard() {
 
         renderRecentActivity(userHistory);
         updateGrowthChart(userHistory); 
+
     }, (error) => {
-        console.error("Firebase read error:", error);
+        console.error("Firebase access denied:", error);
     });
 }
-
 
 
 // Is block ko app.js mein kahin bhi bahar rakh dein
@@ -377,7 +380,10 @@ function resetDashboardUI() {
     if(document.getElementById('dash-attempts')) document.getElementById('dash-attempts').innerText = '0';
     if(document.getElementById('dash-avg')) document.getElementById('dash-avg').innerText = '0';
     if(document.getElementById('dash-history')) document.getElementById('dash-history').innerHTML = '';
-    if(growthChart) growthChart.destroy();
+    if(growthChart) {
+        growthChart.destroy();
+        growthChart = null;
+    }
 }
 
 // Stats update karne ke liye common helper
