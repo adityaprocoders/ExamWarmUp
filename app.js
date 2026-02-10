@@ -1470,6 +1470,9 @@ function confirmStartQuiz() {
 
 
 
+
+
+
 function updateTimerLabel(s) {
     const label = document.getElementById('sec-label');
     if(label) {
@@ -1531,6 +1534,7 @@ function startTimer() {
 
 
 
+
 function renderTabs() {
     const names = { 'Math': 'Mathematics', 'Reas': 'Reasoning', 'Combined': 'Computer & English' };
     document.getElementById('q-sections').innerHTML = Object.keys(quizState.secMap).map(s => 
@@ -1582,6 +1586,17 @@ function renderQ() {
     if (!quizState.qs || quizState.qs.length === 0) {
         document.getElementById('q-text').innerText = "Technical Error: Questions missing.";
         return;
+    }
+
+    const prevBtn = document.getElementById('btn-prev');
+    if (prevBtn) {
+        if (quizState.idx === 0) {
+            prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            prevBtn.disabled = true;
+        } else {
+            prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            prevBtn.disabled = false;
+        }
     }
 
     const q = quizState.qs[quizState.idx];
@@ -1643,6 +1658,19 @@ function renderQ() {
 
 
 function selOpt(i) { quizState.answers[quizState.idx] = i; renderQ(); }
+
+function prevQ() {
+    if (quizState.idx > 0) {
+        if (quizState.status[quizState.idx] === undefined) {
+            quizState.status[quizState.idx] = 'na';
+        }
+        
+        // Index peeche le jayein
+        quizState.idx--;
+        renderQ();
+    }
+}
+
 function saveNext() { 
     quizState.status[quizState.idx] = (quizState.answers[quizState.idx] !== undefined) ? 'ans' : 'na';
     if(quizState.idx < quizState.qs.length - 1) { quizState.idx++; renderQ(); } 
