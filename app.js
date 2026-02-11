@@ -225,11 +225,16 @@ function applyPermissions() {
 
 
 function logout() {
-    document.getElementById('auth-screen').classList.remove('hidden');
-    currentUserRole = 'user';
-    showToast("Logged out successfully")
-    switchView('dashboard');
+    auth_fb.signOut().then(() => {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        currentUserRole = 'user';
+        resetDashboardUI(); 
+        showToast("Logged out successfully");
+        switchView('dashboard');
+    });
 }
+
+
 
 // 1. All Users ko load karne ka function
 function loadAllRegisteredUsers() {
@@ -314,53 +319,48 @@ function loadDashboard() {
     const user = auth_fb.currentUser;
 
     if (!user) {
-        console.log("No user session found.");
-        resetDashboardUI(); // Step 2 wala function
+        resetDashboardUI();
         return; 
     }
 
-    const userId = user.uid;
+    const userId = user.uid; // Har student ki unique ID
     
-    // UI ko pehle "Loading..." state mein daal dein taaki purana data na dikhe
+    // UI reset during loading
     if(document.getElementById('dash-attempts')) document.getElementById('dash-attempts').innerText = '--';
     if(document.getElementById('dash-avg')) document.getElementById('dash-avg').innerText = '--';
 
-    // 1. DYNAMIC TOTAL TESTS (Sabke liye common)
+    // 1. GLOBAL TESTS (Ye sabke liye same rahega)
     db_fb.ref('tests').once('value', (snapshot) => {
         const totalTests = snapshot.numChildren();
-        const dashTestsEl = document.getElementById('dash-tests');
-        if (dashTestsEl) dashTestsEl.innerText = totalTests; 
+        if (document.getElementById('dash-tests')) document.getElementById('dash-tests').innerText = totalTests; 
     });
 
-    // 2. USER SPECIFIC DATA (Sirf is Student ka)
-    // .off() ka use karein taaki purane listeners band ho jayein aur overlap na ho
-    db_fb.ref('results/' + userId).off(); 
+    // 2. USER WISE DATA (Sirf logged-in user ke results)
+    // Hum 'results/' ke aage userId laga rahe hain taaki security bani rahe
     db_fb.ref('results/' + userId).on('value', (snapshot) => {
         const history = [];
         snapshot.forEach(child => {
             history.push({ resId: child.key, ...child.val() });
         });
         
+        // Latest test sabse upar
         const userHistory = history.reverse(); 
 
         const totalAttempts = userHistory.length;
         const totalScore = userHistory.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0);
         const avgScore = totalAttempts > 0 ? Math.round(totalScore / totalAttempts) : 0;
 
-        // UI Update logic (Aapka original logic)
-        const attemptsEl = document.getElementById('dash-attempts');
-        const avgEl = document.getElementById('dash-avg');
-        
-        if(attemptsEl) attemptsEl.innerText = totalAttempts;
-        if(avgEl) avgEl.innerText = avgScore;
+        // Dashboard Stats Update
+        if(document.getElementById('dash-attempts')) document.getElementById('dash-attempts').innerText = totalAttempts;
+        if(document.getElementById('dash-avg')) document.getElementById('dash-avg').innerText = avgScore;
 
+        // Recent Activity Table aur Chart sirf is user ka data dikhayenge
         renderRecentActivity(userHistory);
         updateGrowthChart(userHistory); 
 
-    }, (error) => {
-        console.error("Firebase access denied:", error);
     });
 }
+
 
 
 // Is block ko app.js mein kahin bhi bahar rakh dein
