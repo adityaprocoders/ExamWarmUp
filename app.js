@@ -195,11 +195,26 @@ function proceedToDashboard(name) {
 
 // Permissions handling
 function applyPermissions() {
+    const isAdmin = (currentUserRole === 'owner');
+    
+    // UI Elements Selection
+    const adminSection = document.getElementById('author-stats-section');
+    const userStats = document.getElementById('user-stats-section');
+    const userContent = document.getElementById('user-specific-content');
     const uploadBtn = document.getElementById('global-upload-btn');
     const allUsersTab = document.getElementById('nav-all-users');
 
-    if (currentUserRole === 'owner') {
-        // Owner logic
+    if (isAdmin) {
+        // --- AUTHOR UI ---
+        // Puraane sections ko hide aur naye ko show karne ka safe tareeka
+        if(adminSection) {
+            adminSection.classList.remove('hidden');
+            adminSection.style.display = 'block';
+        }
+        if(userStats) userStats.style.display = 'none';
+        if(userContent) userContent.style.display = 'none';
+        
+        // Admin buttons
         if (uploadBtn) {
             uploadBtn.classList.remove('hidden');
             uploadBtn.style.display = 'flex';
@@ -208,8 +223,25 @@ function applyPermissions() {
             allUsersTab.classList.remove('hidden');
             allUsersTab.style.display = 'block'; 
         }
+
+        const pageTitle = document.getElementById('page-title');
+        if(pageTitle) pageTitle.innerText = "Executive Summary";
+        
+        // Data load karte waqt error handling taaki UI crash na ho
+        try {
+            loadAdminDashboardData();
+        } catch (e) {
+            console.error("Admin Data Load Error:", e);
+        }
     } else {
-        // Student logic
+        // --- STUDENT UI ---
+        if(adminSection) {
+            adminSection.classList.add('hidden');
+            adminSection.style.display = 'none';
+        }
+        if(userStats) userStats.style.display = 'grid';
+        if(userContent) userContent.style.display = 'grid';
+        
         if (uploadBtn) {
             uploadBtn.classList.add('hidden');
             uploadBtn.style.display = 'none';
@@ -218,9 +250,131 @@ function applyPermissions() {
             allUsersTab.classList.add('hidden');
             allUsersTab.style.display = 'none';
         }
+
+        const pageTitle = document.getElementById('page-title');
+        if(pageTitle) pageTitle.innerText = "Dashboard Overview";
+        
+        loadDashboard(); 
     }
-    switchView('dashboard');
+    
+    // Sirf dashboard view par switch karein
+    if(typeof switchView === "function") switchView('dashboard');
 }
+
+/**
+ * Author Dashboard data loader with safety checks
+ */
+/**
+ * Author Dashboard data loader - Fully Dynamic & Real-time
+ */
+function loadAdminDashboardData() {
+    const adminActiveUsersEl = document.getElementById('admin-active-users');
+    const adminTotalTestsEl = document.getElementById('admin-total-tests');
+    const adminTotalAttemptsEl = document.getElementById('admin-total-attempts');
+    const adminAvgAccuracyEl = document.getElementById('admin-avg-accuracy');
+    const insightsBox = document.getElementById('admin-insights');
+
+    // 1. Live Students Count
+    db_fb.ref('users').on('value', (snapshot) => {
+        const count = snapshot.numChildren();
+        if(adminActiveUsersEl) adminActiveUsersEl.innerText = count.toLocaleString();
+    });
+
+    // 2. Total Published Tests Count
+    db_fb.ref('tests').on('value', (snapshot) => {
+        const count = snapshot.numChildren();
+        if(adminTotalTestsEl) adminTotalTestsEl.innerText = count.toLocaleString();
+    });
+
+    // 3. Global Stats Aggregation (Results Scanning)
+    db_fb.ref('results').on('value', (allUsersSnapshot) => {
+        let totalAttempts = 0;
+        let totalAccuracySum = 0;
+        let bestStudent = { name: "N/A", acc: 0 };
+        let strugglingStudent = { name: "N/A", acc: 101 };
+        
+        // Chart Data Calculation (Last 7 Days)
+        const daysMap = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 };
+
+        allUsersSnapshot.forEach((userResultsSnap) => {
+            userResultsSnap.forEach((resultSnap) => {
+                const res = resultSnap.val();
+                totalAttempts++;
+                
+                // Accuracy Calculation
+                const acc = res.attempted > 0 ? (res.correct / res.attempted) * 100 : 0;
+                totalAccuracySum += acc;
+
+                // Track Top Performer & Needs Attention
+                if(acc > bestStudent.acc) {
+                    bestStudent = { name: res.studentName || "Student", acc: acc.toFixed(1) };
+                }
+                if(acc < strugglingStudent.acc && res.attempted > 0) {
+                    strugglingStudent = { name: res.studentName || "Student", acc: acc.toFixed(1) };
+                }
+
+                // Chart Logic: Timestamp se day nikalna
+                if(res.timestamp) {
+                    const dayName = new Date(res.timestamp).toLocaleDateString('en-US', { weekday: 'short' });
+                    if(daysMap[dayName] !== undefined) daysMap[dayName]++;
+                }
+            });
+        });
+
+        // UI Updates for Cards
+        const globalAvgAccuracy = totalAttempts > 0 ? Math.round(totalAccuracySum / totalAttempts) : 0;
+        if(adminTotalAttemptsEl) adminTotalAttemptsEl.innerText = totalAttempts.toLocaleString();
+        if(adminAvgAccuracyEl) adminAvgAccuracyEl.innerText = globalAvgAccuracy + "%";
+
+        // 4. Update Student Insights Snapshot (Dynamic HTML)
+        if(insightsBox) {
+            insightsBox.innerHTML = `
+                <div class="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-3 shadow-sm">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-emerald-500"><i class="fas fa-medal"></i></div>
+                    <div><p class="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Top Performer</p>
+                    <p class="font-bold text-[#2B3674]">${bestStudent.name} <span class="text-emerald-500">(${bestStudent.acc}%)</span></p></div>
+                </div>
+                <div class="flex items-center gap-4 p-4 bg-red-50 rounded-2xl border border-red-100 mb-3 shadow-sm">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-500"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div><p class="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Needs Attention</p>
+                    <p class="font-bold text-[#2B3674]">${strugglingStudent.name} <span class="text-red-500">(${strugglingStudent.acc == 101 ? 0 : strugglingStudent.acc}%)</span></p></div>
+                </div>
+            `;
+        }
+
+        // 5. Update Attempts Trend Chart (Real Data)
+        const chartData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => daysMap[d]);
+        updateAdminChartWithData(chartData);
+    });
+}
+
+// Chart Update Helper Function
+function updateAdminChartWithData(dataPoints) {
+    const canvas = document.getElementById('adminAttemptsChart');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (window.adminChartInstance) window.adminChartInstance.destroy();
+
+    window.adminChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Attempts',
+                data: dataPoints,
+                borderColor: '#4318FF',
+                backgroundColor: 'rgba(67, 24, 255, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+
 
 
 
@@ -1778,8 +1932,9 @@ function submitQuiz() {
     });
 
     const res = {
-        testId: quizState.id, // <--- IMPORTANT: Link result to the Test ID
+        testId: quizState.id,
         testTitle: quizState.title,
+        category: quizState.category || 'full', // <--- YE LINE SABSE IMPORTANT HAI
         score: s, max: m, correct: cor, wrong: wrg, attempted: att,
         totalQs: quizState.qs.length, posMarks: pos, negMarks: neg,
         timeTaken: `${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`,
@@ -1872,6 +2027,122 @@ function showAnalysis(res) {
         MathJax.typesetPromise().catch((err) => console.log(err));
     }
 }
+
+
+async function downloadAllActivityPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); 
+    const user = auth_fb.currentUser;
+    const studentName = document.getElementById('display-user-name')?.innerText || "Candidate";
+
+    if (!user) return showToast("Please login first!", "error");
+    showLoader("Generating Official Ledger...");
+
+    try {
+        const snapshot = await db_fb.ref('results/' + user.uid).once('value');
+        const data = snapshot.val();
+        if (!data) { 
+            hideLoader(); 
+            return showToast("No activity found!", "info"); 
+        }
+
+        const allResults = Object.values(data).reverse();
+
+        // --- 1. BRANDED HEADER ---
+        doc.setFillColor(67, 24, 255); 
+        doc.rect(0, 0, 297, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text("ExamWarmUp", 15, 18); 
+        doc.setFontSize(10);
+        doc.text("OFFICIAL PERFORMANCE LEDGER", 15, 25);
+        doc.text(`Student: ${studentName.toUpperCase()}`, 282, 18, { align: "right" });
+
+        // --- 2. DATA PREPARATION ---
+        const tableBody = allResults.map((res, index) => {
+            const acc = res.attempted > 0 ? Math.round((res.correct / res.attempted) * 100) : 0;
+            const title = (res.testTitle || "").toLowerCase();
+            const rawCat = (res.category || "").toLowerCase(); 
+            
+            let finalCat = "Full Length Mock";
+
+            if (rawCat.includes('pyq') || title.includes('pyq')) {
+                finalCat = "PYQ Paper";
+            } else if (rawCat.includes('daily') || title.includes('daily') || title.includes('warm')) {
+                finalCat = "Daily Warmup";
+            } else if (rawCat.includes('sec') || title.includes('sectional') || title.includes('math') || title.includes('reas') || title.includes('comp') || title.includes('eng')) {
+                finalCat = "Sectional Test";
+            }
+
+            return [
+                index + 1,
+                res.testTitle || "Test",
+                finalCat, 
+                res.timestamp ? new Date(res.timestamp).toLocaleDateString('en-GB') : 'N/A',
+                res.max || 0,
+                res.score || 0,
+                res.correct || 0,
+                res.wrong || 0,
+                `${acc}%`,
+                res.timeTaken || "00:01"
+            ];
+        });
+
+        // --- 3. TABLE GENERATION WITH UPDATED ROW COLORS ---
+        doc.autoTable({
+            startY: 50,
+            head: [['#', 'Test Name', 'Category', 'Date', 'Max', 'Score', 'Cor.', 'Wrng.', 'Acc.', 'Time']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [67, 24, 255], textColor: [255, 255, 255] },
+            styles: { fontSize: 9, cellPadding: 3 },
+            
+            didParseCell: function(data) {
+                if (data.section === 'body') {
+                    const rowCategory = data.row.cells[2].text[0]; 
+                    
+                    // Naya Color Logic apply kiya gaya hai
+                    if (rowCategory === "Daily Warmup") {
+                        data.cell.styles.fillColor = [255, 255, 255]; // Pure White Row
+                    } else if (rowCategory === "Full Length Mock") {
+                        data.cell.styles.fillColor = [239, 246, 255]; // Light Blue Row (Pehle ye daily ka tha)
+                    } else if (rowCategory === "PYQ Paper") {
+                        data.cell.styles.fillColor = [240, 253, 244]; // Green Row (Waisa hi rahega)
+                    } else if (rowCategory === "Sectional Test") {
+                        data.cell.styles.fillColor = [250, 245, 255]; // Light Purple Row
+                    }
+
+                    // Score Column (#5) ko bold rakhne ke liye
+                    if (data.column.index === 5) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [67, 24, 255];
+                    }
+                }
+            }
+        });
+
+        doc.save(`${studentName}_Performance_Report.pdf`);
+        hideLoader();
+        showToast("PDF Downloaded with new colors!", "success");
+
+    } catch (error) {
+        console.error("PDF Error:", error);
+        hideLoader();
+        showToast("Error generating PDF", "error");
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 function switchAnalysisTab(tab) {
     document.querySelectorAll('.an-tab').forEach(t => t.classList.remove('active'));
