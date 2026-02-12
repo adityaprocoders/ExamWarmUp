@@ -15,6 +15,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
      <script src="config.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -149,48 +151,88 @@
         </div>
 
         <!-- Dashboard View -->
-        <div id="view-dashboard" class="fade-in space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-[#F4F7FE] text-[#4318FF]"><i class="fas fa-file-alt"></i></div>
-                    <div><p class="text-sm text-[#A3AED0] font-medium">Total Tests</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-tests">0</h3></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-[#F4F7FE] text-[#05CD99]"><i class="fas fa-check-circle"></i></div>
-                    <div><p class="text-sm text-[#A3AED0] font-medium">Tests Attempted</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-attempts">0</h3></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-[#F4F7FE] text-[#FFB547]"><i class="fas fa-chart-line"></i></div>
-                    <div><p class="text-sm text-[#A3AED0] font-medium">Avg Score</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-avg">0</h3></div>
+       <div id="view-dashboard" class="fade-in space-y-6">
+
+    <div id="author-stats-section" class="hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="stat-card border-b-4 border-indigo-500">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Mock Tests</p>
+                    <h3 class="text-2xl font-bold text-[#2B3674]" id="admin-total-tests">0</h3>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="dashboard-card">
-                    <h3 class="text-lg font-bold text-[#2B3674] mb-6">Performance Growth</h3>
-                    <div class="h-64"><canvas id="perfChart"></canvas></div>
+            <div class="stat-card border-b-4 border-emerald-500">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Students</p>
+                    <h3 class="text-2xl font-bold text-[#2B3674]" id="admin-active-users">0</h3>
                 </div>
-                <div class="dashboard-card">
-    <h3 class="text-lg font-bold text-[#2B3674] mb-4">Recent Activity</h3>
-    
-    <div class="recent-activity-container">
-        <table class="w-full text-left">
-            <thead>
-                <tr class="text-gray-400 text-[10px] uppercase tracking-wider">
-                    <th class="pb-3">Test Name</th>
-                    <th class="pb-3">Score</th>
-                    <th class="pb-3 text-right">Action</th>
-                </tr>
-            </thead>
-            <tbody id="dash-history">
-                </tbody>
-        </table>
-    </div>
-</div>
-            
+            </div>
+            <div class="stat-card border-b-4 border-blue-500">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Attempts</p>
+                    <h3 class="text-2xl font-bold text-[#2B3674]" id="admin-total-attempts">0</h3>
+                </div>
+            </div>
+            <div class="stat-card border-b-4 border-orange-500">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Avg Accuracy</p>
+                    <h3 class="text-2xl font-bold text-[#2B3674]" id="admin-avg-accuracy">0%</h3>
+                </div>
+            </div>
+            <div class="stat-card border-b-4 border-pink-500">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Revenue</p>
+                    <h3 class="text-2xl font-bold text-[#2B3674]" id="admin-revenue">₹0</h3>
+                </div>
             </div>
         </div>
 
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="dashboard-card lg:col-span-2">
+                <h3 class="text-lg font-bold text-[#2B3674] mb-4">Attempts Trend</h3>
+                <div class="h-64"><canvas id="adminAttemptsChart"></canvas></div>
+            </div>
+            <div class="dashboard-card">
+                <h3 class="text-lg font-bold text-[#2B3674] mb-4">Student Insights Snapshot</h3>
+                <div class="space-y-4" id="admin-insights">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-stats-section" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-[#F4F7FE] text-[#4318FF]"><i class="fas fa-file-alt"></i></div>
+            <div><p class="text-sm text-[#A3AED0] font-medium">Total Tests</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-tests">0</h3></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-[#F4F7FE] text-[#05CD99]"><i class="fas fa-check-circle"></i></div>
+            <div><p class="text-sm text-[#A3AED0] font-medium">Tests Attempted</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-attempts">0</h3></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-[#F4F7FE] text-[#FFB547]"><i class="fas fa-chart-line"></i></div>
+            <div><p class="text-sm text-[#A3AED0] font-medium">Avg Score</p><h3 class="text-2xl font-bold text-[#2B3674]" id="dash-avg">0</h3></div>
+        </div>
+    </div>
+
+    <div id="user-specific-content" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="dashboard-card">
+            <h3 class="text-lg font-bold text-[#2B3674] mb-6">Performance Growth</h3>
+            <div class="h-64"><canvas id="perfChart"></canvas></div>
+        </div>
+        <div class="dashboard-card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-[#2B3674]">Recent Activity</h3>
+                <button onclick="downloadAllActivityPDF()" class="text-[10px] font-bold text-[#05CD99] bg-emerald-50 px-3 py-1.5 rounded-lg">EXPORT ALL PDF</button>
+            </div>
+            <div class="recent-activity-container">
+                <table class="w-full text-left">
+                    <tbody id="dash-history"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 
         <div id="modal-instructions" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
@@ -312,6 +354,7 @@
                         <div class="an-tab active" id="tab-overall" onclick="switchAnalysisTab('overall')">OVERALL ANALYSIS</div>
                         <div class="an-tab" id="tab-solutions" onclick="switchAnalysisTab('solutions')">SOLUTION REPORT</div>
                     </div>
+                    
                     <button onclick="switchView('dashboard')" class="text-gray-400 hover:text-red-500 pb-4">
                       <i class="fas fa-times text-xl"></i>
                     </button>
