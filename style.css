@@ -7,6 +7,55 @@
        
    
 
+/* Purani height aur padding ko hata kar Tailwind ko control lene dein */
+.q-footer {
+    height: 80px !important; /* Standarized height */
+}
+
+/* Mobile responsive fix with Tailwind */
+@media (max-width: 768px) {
+    .q-footer {
+        flex-direction: column-reverse;
+        height: auto !important;
+        padding: 20px 15px !important;
+        gap: 12px;
+    }
+    .q-footer > div {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
+
+
+
+
+
+.recent-activity-container {
+    max-height: 400px; /* Aap apni zaroorat ke hisaab se height kam ya zyada kar sakte hain */
+    overflow-y: auto;  /* Vertical scroll enable karne ke liye */
+    padding-right: 5px; /* Scrollbar aur table ke beech gap ke liye */
+}
+
+/* Scrollbar ko sundar banane ke liye (Optional) */
+.recent-activity-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.recent-activity-container::-webkit-scrollbar-thumb {
+    background: #e2e8f0; 
+    border-radius: 10px;
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -306,3 +355,4 @@
         z-index: 35;
     }
 }
+
