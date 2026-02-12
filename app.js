@@ -195,26 +195,11 @@ function proceedToDashboard(name) {
 
 // Permissions handling
 function applyPermissions() {
-    const isAdmin = (currentUserRole === 'owner');
-    
-    // UI Elements Selection
-    const adminSection = document.getElementById('author-stats-section');
-    const userStats = document.getElementById('user-stats-section');
-    const userContent = document.getElementById('user-specific-content');
     const uploadBtn = document.getElementById('global-upload-btn');
     const allUsersTab = document.getElementById('nav-all-users');
 
-    if (isAdmin) {
-        // --- AUTHOR UI ---
-        // Puraane sections ko hide aur naye ko show karne ka safe tareeka
-        if(adminSection) {
-            adminSection.classList.remove('hidden');
-            adminSection.style.display = 'block';
-        }
-        if(userStats) userStats.style.display = 'none';
-        if(userContent) userContent.style.display = 'none';
-        
-        // Admin buttons
+    if (currentUserRole === 'owner') {
+        // Owner logic
         if (uploadBtn) {
             uploadBtn.classList.remove('hidden');
             uploadBtn.style.display = 'flex';
@@ -223,25 +208,8 @@ function applyPermissions() {
             allUsersTab.classList.remove('hidden');
             allUsersTab.style.display = 'block'; 
         }
-
-        const pageTitle = document.getElementById('page-title');
-        if(pageTitle) pageTitle.innerText = "Executive Summary";
-        
-        // Data load karte waqt error handling taaki UI crash na ho
-        try {
-            loadAdminDashboardData();
-        } catch (e) {
-            console.error("Admin Data Load Error:", e);
-        }
     } else {
-        // --- STUDENT UI ---
-        if(adminSection) {
-            adminSection.classList.add('hidden');
-            adminSection.style.display = 'none';
-        }
-        if(userStats) userStats.style.display = 'grid';
-        if(userContent) userContent.style.display = 'grid';
-        
+        // Student logic
         if (uploadBtn) {
             uploadBtn.classList.add('hidden');
             uploadBtn.style.display = 'none';
@@ -250,145 +218,18 @@ function applyPermissions() {
             allUsersTab.classList.add('hidden');
             allUsersTab.style.display = 'none';
         }
-
-        const pageTitle = document.getElementById('page-title');
-        if(pageTitle) pageTitle.innerText = "Dashboard Overview";
-        
-        loadDashboard(); 
     }
-    
-    // Sirf dashboard view par switch karein
-    if(typeof switchView === "function") switchView('dashboard');
+    switchView('dashboard');
 }
-
-/**
- * Author Dashboard data loader with safety checks
- */
-/**
- * Author Dashboard data loader - Fully Dynamic & Real-time
- */
-function loadAdminDashboardData() {
-    const adminActiveUsersEl = document.getElementById('admin-active-users');
-    const adminTotalTestsEl = document.getElementById('admin-total-tests');
-    const adminTotalAttemptsEl = document.getElementById('admin-total-attempts');
-    const adminAvgAccuracyEl = document.getElementById('admin-avg-accuracy');
-    const insightsBox = document.getElementById('admin-insights');
-
-    // 1. Live Students Count
-    db_fb.ref('users').on('value', (snapshot) => {
-        const count = snapshot.numChildren();
-        if(adminActiveUsersEl) adminActiveUsersEl.innerText = count.toLocaleString();
-    });
-
-    // 2. Total Published Tests Count
-    db_fb.ref('tests').on('value', (snapshot) => {
-        const count = snapshot.numChildren();
-        if(adminTotalTestsEl) adminTotalTestsEl.innerText = count.toLocaleString();
-    });
-
-    // 3. Global Stats Aggregation (Results Scanning)
-    db_fb.ref('results').on('value', (allUsersSnapshot) => {
-        let totalAttempts = 0;
-        let totalAccuracySum = 0;
-        let bestStudent = { name: "N/A", acc: 0 };
-        let strugglingStudent = { name: "N/A", acc: 101 };
-        
-        // Chart Data Calculation (Last 7 Days)
-        const daysMap = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 };
-
-        allUsersSnapshot.forEach((userResultsSnap) => {
-            userResultsSnap.forEach((resultSnap) => {
-                const res = resultSnap.val();
-                totalAttempts++;
-                
-                // Accuracy Calculation
-                const acc = res.attempted > 0 ? (res.correct / res.attempted) * 100 : 0;
-                totalAccuracySum += acc;
-
-                // Track Top Performer & Needs Attention
-                if(acc > bestStudent.acc) {
-                    bestStudent = { name: res.studentName || "Student", acc: acc.toFixed(1) };
-                }
-                if(acc < strugglingStudent.acc && res.attempted > 0) {
-                    strugglingStudent = { name: res.studentName || "Student", acc: acc.toFixed(1) };
-                }
-
-                // Chart Logic: Timestamp se day nikalna
-                if(res.timestamp) {
-                    const dayName = new Date(res.timestamp).toLocaleDateString('en-US', { weekday: 'short' });
-                    if(daysMap[dayName] !== undefined) daysMap[dayName]++;
-                }
-            });
-        });
-
-        // UI Updates for Cards
-        const globalAvgAccuracy = totalAttempts > 0 ? Math.round(totalAccuracySum / totalAttempts) : 0;
-        if(adminTotalAttemptsEl) adminTotalAttemptsEl.innerText = totalAttempts.toLocaleString();
-        if(adminAvgAccuracyEl) adminAvgAccuracyEl.innerText = globalAvgAccuracy + "%";
-
-        // 4. Update Student Insights Snapshot (Dynamic HTML)
-        if(insightsBox) {
-            insightsBox.innerHTML = `
-                <div class="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 mb-3 shadow-sm">
-                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-emerald-500"><i class="fas fa-medal"></i></div>
-                    <div><p class="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Top Performer</p>
-                    <p class="font-bold text-[#2B3674]">${bestStudent.name} <span class="text-emerald-500">(${bestStudent.acc}%)</span></p></div>
-                </div>
-                <div class="flex items-center gap-4 p-4 bg-red-50 rounded-2xl border border-red-100 mb-3 shadow-sm">
-                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-500"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div><p class="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Needs Attention</p>
-                    <p class="font-bold text-[#2B3674]">${strugglingStudent.name} <span class="text-red-500">(${strugglingStudent.acc == 101 ? 0 : strugglingStudent.acc}%)</span></p></div>
-                </div>
-            `;
-        }
-
-        // 5. Update Attempts Trend Chart (Real Data)
-        const chartData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => daysMap[d]);
-        updateAdminChartWithData(chartData);
-    });
-}
-
-// Chart Update Helper Function
-function updateAdminChartWithData(dataPoints) {
-    const canvas = document.getElementById('adminAttemptsChart');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    if (window.adminChartInstance) window.adminChartInstance.destroy();
-
-    window.adminChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{
-                label: 'Attempts',
-                data: dataPoints,
-                borderColor: '#4318FF',
-                backgroundColor: 'rgba(67, 24, 255, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-}
-
-
 
 
 
 function logout() {
-    auth_fb.signOut().then(() => {
-        document.getElementById('auth-screen').classList.remove('hidden');
-        currentUserRole = 'user';
-        resetDashboardUI(); 
-        showToast("Logged out successfully");
-        switchView('dashboard');
-    });
+    document.getElementById('auth-screen').classList.remove('hidden');
+    currentUserRole = 'user';
+    showToast("Logged out successfully")
+    switchView('dashboard');
 }
-
-
 
 // 1. All Users ko load karne ka function
 function loadAllRegisteredUsers() {
@@ -469,51 +310,185 @@ async function deleteUserPermanently(uid, name) {
 
 
 
-function loadDashboard() {
+async function loadDashboard() {
     const user = auth_fb.currentUser;
+    if (!user) return;
 
-    if (!user) {
-        resetDashboardUI();
-        return; 
+    const adminUI = document.getElementById('admin-view-container');
+    const studentUI = document.getElementById('student-view-container');
+
+    if (currentUserRole === 'owner') {
+        adminUI.classList.remove('hidden');
+        studentUI.classList.add('hidden');
+        await loadAdminAnalytics(); // Admin logic
+    } else {
+        adminUI.classList.add('hidden');
+        studentUI.classList.remove('hidden');
+        // USER LOGIC CALL
+        loadStudentDashboardData(user.uid); 
+    }
+}
+
+
+
+// Global Variable for Admin Chart (top of app.js)
+let adminTrendChart = null;
+
+// Inside loadAdminAnalytics function:
+function updateAdminTrendChart(allResults) {
+    const ctx = document.getElementById('adminTrendChart');
+    if (!ctx) return;
+
+    // 1. Data Processing: Date wise attempts count karein
+    const dateCounts = {};
+    allResults.forEach(res => {
+        const date = new Date(res.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        dateCounts[date] = (dateCounts[date] || 0) + 1;
+    });
+
+    const labels = Object.keys(dateCounts).slice(-7); // Last 7 days
+    const dataPoints = Object.values(dateCounts).slice(-7);
+
+    // 2. Purane chart ko destroy karein
+    if (adminTrendChart) {
+        adminTrendChart.destroy();
     }
 
-    const userId = user.uid; // Har student ki unique ID
-    
-    // UI reset during loading
-    if(document.getElementById('dash-attempts')) document.getElementById('dash-attempts').innerText = '--';
-    if(document.getElementById('dash-avg')) document.getElementById('dash-avg').innerText = '--';
-
-    // 1. GLOBAL TESTS (Ye sabke liye same rahega)
-    db_fb.ref('tests').once('value', (snapshot) => {
-        const totalTests = snapshot.numChildren();
-        if (document.getElementById('dash-tests')) document.getElementById('dash-tests').innerText = totalTests; 
-    });
-
-    // 2. USER WISE DATA (Sirf logged-in user ke results)
-    // Hum 'results/' ke aage userId laga rahe hain taaki security bani rahe
-    db_fb.ref('results/' + userId).on('value', (snapshot) => {
-        const history = [];
-        snapshot.forEach(child => {
-            history.push({ resId: child.key, ...child.val() });
-        });
-        
-        // Latest test sabse upar
-        const userHistory = history.reverse(); 
-
-        const totalAttempts = userHistory.length;
-        const totalScore = userHistory.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0);
-        const avgScore = totalAttempts > 0 ? Math.round(totalScore / totalAttempts) : 0;
-
-        // Dashboard Stats Update
-        if(document.getElementById('dash-attempts')) document.getElementById('dash-attempts').innerText = totalAttempts;
-        if(document.getElementById('dash-avg')) document.getElementById('dash-avg').innerText = avgScore;
-
-        // Recent Activity Table aur Chart sirf is user ka data dikhayenge
-        renderRecentActivity(userHistory);
-        updateGrowthChart(userHistory); 
-
+    // 3. Naya Chart Create karein
+    adminTrendChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Global Test Attempts',
+                data: dataPoints,
+                backgroundColor: '#4318FF',
+                borderRadius: 8,
+                barThickness: 20
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { drawBorder: false, color: '#F4F7FE' } },
+                x: { grid: { display: false } }
+            }
+        }
     });
 }
+
+
+
+
+async function loadAdminAnalytics() {
+    showLoader("Syncing Admin Data...");
+    try {
+        const [testsSnap, usersSnap, resultsSnap] = await Promise.all([
+            db_fb.ref('tests').once('value'),
+            db_fb.ref('users').once('value'),
+            db_fb.ref('results').once('value')
+        ]);
+
+        let totalAttempts = 0;
+        let accuracySum = 0;
+        let globalActivityHTML = "";
+        let allResultsArray = []; // Chart ke liye array
+
+        if (resultsSnap.exists()) {
+            resultsSnap.forEach(userNode => {
+                userNode.forEach(resSnap => {
+                    const res = resSnap.val();
+                    totalAttempts++;
+                    allResultsArray.push(res); // Array mein save karein
+                    
+                    const acc = (res.correct / (res.attempted || 1)) * 100;
+                    accuracySum += acc;
+
+                    globalActivityHTML = `
+                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-all">
+                            <td class="py-3">
+                                <p class="text-[11px] font-extrabold text-[#2B3674]">${res.testTitle || 'Untitled Test'}</p>
+                                <p class="text-[9px] text-gray-400">${new Date(res.timestamp).toLocaleDateString()}</p>
+                            </td>
+                            <td class="py-3 text-right">
+                                <span class="bg-indigo-50 text-[#4318FF] px-2 py-1 rounded text-[10px] font-bold">${res.score}/${res.max}</span>
+                            </td>
+                        </tr>` + globalActivityHTML;
+                });
+            });
+        }
+
+        // Stats Update
+        document.getElementById('admin-total-tests').innerText = testsSnap.numChildren() || 0;
+        document.getElementById('admin-active-users').innerText = usersSnap.numChildren() || 0;
+        document.getElementById('admin-total-attempts').innerText = totalAttempts;
+        document.getElementById('admin-avg-acc').innerText = totalAttempts > 0 ? Math.round(accuracySum / totalAttempts) + "%" : "0%";
+        document.getElementById('admin-recent-global').innerHTML = globalActivityHTML || '<tr><td colspan="2" class="text-center py-4">No data</td></tr>';
+
+        // --- CHART CALL ---
+        updateAdminTrendChart(allResultsArray);
+
+    } catch (error) {
+        console.error("Chart Error:", error);
+    } finally {
+        hideLoader();
+    }
+}
+
+
+
+
+
+// Student/User dashboard data load karne ka function
+function loadStudentDashboardData(userId) {
+    if (!userId) return;
+
+    // 1. Total Tests (Global count)
+    db_fb.ref('tests').once('value', (snapshot) => {
+        const totalTests = snapshot.numChildren() || 0;
+        document.getElementById('dash-tests').innerText = totalTests;
+    });
+
+    // 2. User Specific Results (Attempts aur Scores)
+    // Path: results/UID
+    db_fb.ref('results/' + userId).on('value', (snapshot) => {
+        const history = [];
+        let totalScore = 0;
+
+        if (snapshot.exists()) {
+            snapshot.forEach(child => {
+                const data = child.val();
+                history.push({ resId: child.key, ...data });
+                totalScore += (Number(data.score) || 0);
+            });
+
+            const userHistory = history.reverse(); // Latest first
+            const totalAttempts = userHistory.length;
+            const avgScore = totalAttempts > 0 ? Math.round(totalScore / totalAttempts) : 0;
+
+            // UI Update karein
+            document.getElementById('dash-attempts').innerText = totalAttempts;
+            document.getElementById('dash-avg').innerText = avgScore;
+
+            // Recent Activity table render karein
+            renderRecentActivity(userHistory);
+            
+            // Performance Chart update karein
+            updateGrowthChart(userHistory);
+        } else {
+            // Agar koi data nahi hai toh reset karein
+            document.getElementById('dash-attempts').innerText = "0";
+            document.getElementById('dash-avg').innerText = "0";
+            document.getElementById('dash-history').innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">No tests attempted yet.</td></tr>';
+        }
+    });
+}
+
+
+
+
 
 
 
@@ -579,51 +554,40 @@ function updateUserPresence(uid, name) {
 
 
 // 2. DYNAMIC TABLE (Recent Activity)
+
 function renderRecentActivity(history) {
     const histEl = document.getElementById('dash-history');
     if (!histEl) return;
 
-    // Agar data nahi hai toh clean empty state message
     if (!history || history.length === 0) {
-        histEl.innerHTML = `
-            <tr>
-                <td colspan="3" class="text-center py-10">
-                    <p class="text-gray-400 text-sm font-medium">No tests attempted yet.</p>
-                    <button onclick="switchView('full')" class="mt-2 text-[#4318FF] text-xs font-bold underline">Start your first test</button>
-                </td>
-            </tr>`;
+        histEl.innerHTML = `<tr><td colspan="3" class="text-center py-10 text-gray-400">No activity yet. Attempt a test to see results.</td></tr>`;
         return;
     }
 
-    // Sirf top 5 recent tests table mein dikhayein
-    histEl.innerHTML = history.slice(0, 5).map((h) => {
-        // Score color logic
-        const scorePerc = (h.score / h.max) * 100;
-        const scoreColor = scorePerc >= 50 ? 'text-[#05CD99]' : 'text-[#EE5D50]';
-
+    // Map through user-only history
+    histEl.innerHTML = history.slice(0, 10).map((h) => {
+        const recordId = h.resId || h.id; 
+        
         return `
-            <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                <td class="py-4 font-bold text-[#2B3674] text-xs">
-                    <div class="flex flex-col">
-                        <span>${h.testTitle || 'NIMCET Mock Test'}</span>
-                        <span class="text-[9px] text-gray-400 font-normal">${new Date(h.timestamp).toLocaleDateString()}</span>
-                    </div>
-                </td>
-                <td class="py-4 font-bold ${scoreColor} text-xs">
-                    ${h.score || 0}<span class="text-gray-300 font-normal">/${h.max || 0}</span>
-                </td>
-                <td class="text-right">
-                    <button onclick="viewHistoryAnalysis('${h.resId}')" 
-                        class="text-[10px] font-bold text-[#4318FF] bg-indigo-50 px-4 py-2 rounded-xl hover:bg-[#4318FF] hover:text-white transition-all">
-                        Analysis
-                    </button>
-                </td>
-            </tr>`;
+        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-all duration-200">
+            <td class="py-4 pr-2 font-bold text-[#2B3674] text-xs">
+                <div class="flex flex-col">
+                    <span>${h.testTitle || 'NIMCET Mock Test'}</span>
+                    <span class="text-[9px] text-gray-400 font-normal">${h.timestamp ? new Date(h.timestamp).toLocaleDateString() : ''}</span>
+                </div>
+            </td>
+            <td class="py-4 font-bold text-[#05CD99] text-xs">
+                ${h.score || 0}<span class="text-gray-300 font-normal">/${h.max || 0}</span>
+            </td>
+            <td class="text-right py-4">
+                <button onclick="viewHistoryAnalysis('${recordId}')" 
+                    class="text-[10px] font-bold text-[#4318FF] bg-indigo-50 px-4 py-2 rounded-xl hover:bg-[#4318FF] hover:text-white transition-all shadow-sm">
+                    View My Analysis
+                </button>
+            </td>
+        </tr>`;
     }).join('');
 }
-
-
-
 
 
 
@@ -1178,37 +1142,33 @@ function viewAnalysisByIndex(index) {
     }
 }
 
+
+
 async function viewHistoryAnalysis(resId) {
     const user = auth_fb.currentUser;
     if (!user || !resId) return showToast("Result ID not found!", "error");
 
-    showLoader("Fetching Analysis Data...");
+    showLoader("Fetching your analysis...");
 
     try {
-        // Firebase se specific result fetch karna
+        // Path fix: results/CURRENT_USER_UID/RESULT_ID
         const snapshot = await db_fb.ref(`results/${user.uid}/${resId}`).once('value');
         const resData = snapshot.val();
 
         if (resData) {
-            // Global result variable update karein
             window.currentRes = resData;
-            
-            // UI transition: Dashboard chhupao, Analysis dikhao
             switchView('analysis'); 
-            
-            // Analysis render function call karein
             showAnalysis(resData); 
-            
-            hideLoader();
         } else {
-            throw new Error("Data missing in cloud");
+            showToast("Result not found in your account!", "error");
         }
     } catch (error) {
-        console.error("Analysis Error:", error);
+        showToast("Access Denied!", "error");
+    } finally {
         hideLoader();
-        showToast("Could not load analysis. Please try again.", "error");
     }
 }
+
 
 
 
@@ -1689,6 +1649,117 @@ function startTimer() {
 
 
 
+async function downloadAllActivityPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); 
+    const user = auth_fb.currentUser;
+    const studentName = document.getElementById('display-user-name')?.innerText || "Candidate";
+
+    if (!user) return showToast("Please login first!", "error");
+    showLoader("Generating Official Ledger...");
+
+    try {
+        const snapshot = await db_fb.ref('results/' + user.uid).once('value');
+        const data = snapshot.val();
+        if (!data) { 
+            hideLoader(); 
+            return showToast("No activity found!", "info"); 
+        }
+
+        const allResults = Object.values(data).reverse();
+
+        // --- 1. BRANDED HEADER ---
+        doc.setFillColor(67, 24, 255); 
+        doc.rect(0, 0, 297, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text("ExamWarmUp", 15, 18); 
+        doc.setFontSize(10);
+        doc.text("OFFICIAL PERFORMANCE LEDGER", 15, 25);
+        doc.text(`Student: ${studentName.toUpperCase()}`, 282, 18, { align: "right" });
+
+        // --- 2. DATA PREPARATION ---
+        const tableBody = allResults.map((res, index) => {
+            const acc = res.attempted > 0 ? Math.round((res.correct / res.attempted) * 100) : 0;
+            const title = (res.testTitle || "").toLowerCase();
+            const rawCat = (res.category || "").toLowerCase(); 
+            
+            let finalCat = "Full Length Mock";
+
+            if (rawCat.includes('pyq') || title.includes('pyq')) {
+                finalCat = "PYQ Paper";
+            } else if (rawCat.includes('daily') || title.includes('daily') || title.includes('warm')) {
+                finalCat = "Daily Warmup";
+            } else if (rawCat.includes('sec') || title.includes('sectional') || title.includes('math') || title.includes('reas') || title.includes('comp') || title.includes('eng')) {
+                finalCat = "Sectional Test";
+            }
+
+            return [
+                index + 1,
+                res.testTitle || "Test",
+                finalCat, 
+                res.timestamp ? new Date(res.timestamp).toLocaleDateString('en-GB') : 'N/A',
+                res.max || 0,
+                res.score || 0,
+                res.correct || 0,
+                res.wrong || 0,
+                `${acc}%`,
+                res.timeTaken || "00:01"
+            ];
+        });
+
+        // --- 3. TABLE GENERATION WITH UPDATED ROW COLORS ---
+        doc.autoTable({
+            startY: 50,
+            head: [['#', 'Test Name', 'Category', 'Date', 'Max', 'Score', 'Cor.', 'Wrng.', 'Acc.', 'Time']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [67, 24, 255], textColor: [255, 255, 255] },
+            styles: { fontSize: 9, cellPadding: 3 },
+            
+            didParseCell: function(data) {
+                if (data.section === 'body') {
+                    const rowCategory = data.row.cells[2].text[0]; 
+                    
+                    // Naya Color Logic apply kiya gaya hai
+                    if (rowCategory === "Daily Warmup") {
+                        data.cell.styles.fillColor = [255, 255, 255]; // Pure White Row
+                    } else if (rowCategory === "Full Length Mock") {
+                        data.cell.styles.fillColor = [239, 246, 255]; // Light Blue Row (Pehle ye daily ka tha)
+                    } else if (rowCategory === "PYQ Paper") {
+                        data.cell.styles.fillColor = [240, 253, 244]; // Green Row (Waisa hi rahega)
+                    } else if (rowCategory === "Sectional Test") {
+                        data.cell.styles.fillColor = [250, 245, 255]; // Light Purple Row
+                    }
+
+                    // Score Column (#5) ko bold rakhne ke liye
+                    if (data.column.index === 5) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [67, 24, 255];
+                    }
+                }
+            }
+        });
+
+        doc.save(`${studentName}_Performance_Report.pdf`);
+        hideLoader();
+        showToast("PDF Downloaded with new colors!", "success");
+
+    } catch (error) {
+        console.error("PDF Error:", error);
+        hideLoader();
+        showToast("Error generating PDF", "error");
+    }
+}
+
+
+
+
+
+
+
+
 function renderTabs() {
     const names = { 'Math': 'Mathematics', 'Reas': 'Reasoning', 'Combined': 'Computer & English' };
     document.getElementById('q-sections').innerHTML = Object.keys(quizState.secMap).map(s => 
@@ -1932,9 +2003,8 @@ function submitQuiz() {
     });
 
     const res = {
-        testId: quizState.id,
+        testId: quizState.id, // <--- IMPORTANT: Link result to the Test ID
         testTitle: quizState.title,
-        category: quizState.category || 'full', // <--- YE LINE SABSE IMPORTANT HAI
         score: s, max: m, correct: cor, wrong: wrg, attempted: att,
         totalQs: quizState.qs.length, posMarks: pos, negMarks: neg,
         timeTaken: `${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`,
@@ -2027,122 +2097,6 @@ function showAnalysis(res) {
         MathJax.typesetPromise().catch((err) => console.log(err));
     }
 }
-
-
-async function downloadAllActivityPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); 
-    const user = auth_fb.currentUser;
-    const studentName = document.getElementById('display-user-name')?.innerText || "Candidate";
-
-    if (!user) return showToast("Please login first!", "error");
-    showLoader("Generating Official Ledger...");
-
-    try {
-        const snapshot = await db_fb.ref('results/' + user.uid).once('value');
-        const data = snapshot.val();
-        if (!data) { 
-            hideLoader(); 
-            return showToast("No activity found!", "info"); 
-        }
-
-        const allResults = Object.values(data).reverse();
-
-        // --- 1. BRANDED HEADER ---
-        doc.setFillColor(67, 24, 255); 
-        doc.rect(0, 0, 297, 40, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont("helvetica", "bold");
-        doc.text("ExamWarmUp", 15, 18); 
-        doc.setFontSize(10);
-        doc.text("OFFICIAL PERFORMANCE LEDGER", 15, 25);
-        doc.text(`Student: ${studentName.toUpperCase()}`, 282, 18, { align: "right" });
-
-        // --- 2. DATA PREPARATION ---
-        const tableBody = allResults.map((res, index) => {
-            const acc = res.attempted > 0 ? Math.round((res.correct / res.attempted) * 100) : 0;
-            const title = (res.testTitle || "").toLowerCase();
-            const rawCat = (res.category || "").toLowerCase(); 
-            
-            let finalCat = "Full Length Mock";
-
-            if (rawCat.includes('pyq') || title.includes('pyq')) {
-                finalCat = "PYQ Paper";
-            } else if (rawCat.includes('daily') || title.includes('daily') || title.includes('warm')) {
-                finalCat = "Daily Warmup";
-            } else if (rawCat.includes('sec') || title.includes('sectional') || title.includes('math') || title.includes('reas') || title.includes('comp') || title.includes('eng')) {
-                finalCat = "Sectional Test";
-            }
-
-            return [
-                index + 1,
-                res.testTitle || "Test",
-                finalCat, 
-                res.timestamp ? new Date(res.timestamp).toLocaleDateString('en-GB') : 'N/A',
-                res.max || 0,
-                res.score || 0,
-                res.correct || 0,
-                res.wrong || 0,
-                `${acc}%`,
-                res.timeTaken || "00:01"
-            ];
-        });
-
-        // --- 3. TABLE GENERATION WITH UPDATED ROW COLORS ---
-        doc.autoTable({
-            startY: 50,
-            head: [['#', 'Test Name', 'Category', 'Date', 'Max', 'Score', 'Cor.', 'Wrng.', 'Acc.', 'Time']],
-            body: tableBody,
-            theme: 'grid',
-            headStyles: { fillColor: [67, 24, 255], textColor: [255, 255, 255] },
-            styles: { fontSize: 9, cellPadding: 3 },
-            
-            didParseCell: function(data) {
-                if (data.section === 'body') {
-                    const rowCategory = data.row.cells[2].text[0]; 
-                    
-                    // Naya Color Logic apply kiya gaya hai
-                    if (rowCategory === "Daily Warmup") {
-                        data.cell.styles.fillColor = [255, 255, 255]; // Pure White Row
-                    } else if (rowCategory === "Full Length Mock") {
-                        data.cell.styles.fillColor = [239, 246, 255]; // Light Blue Row (Pehle ye daily ka tha)
-                    } else if (rowCategory === "PYQ Paper") {
-                        data.cell.styles.fillColor = [240, 253, 244]; // Green Row (Waisa hi rahega)
-                    } else if (rowCategory === "Sectional Test") {
-                        data.cell.styles.fillColor = [250, 245, 255]; // Light Purple Row
-                    }
-
-                    // Score Column (#5) ko bold rakhne ke liye
-                    if (data.column.index === 5) {
-                        data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.textColor = [67, 24, 255];
-                    }
-                }
-            }
-        });
-
-        doc.save(`${studentName}_Performance_Report.pdf`);
-        hideLoader();
-        showToast("PDF Downloaded with new colors!", "success");
-
-    } catch (error) {
-        console.error("PDF Error:", error);
-        hideLoader();
-        showToast("Error generating PDF", "error");
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
 
 function switchAnalysisTab(tab) {
     document.querySelectorAll('.an-tab').forEach(t => t.classList.remove('active'));
