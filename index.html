@@ -461,13 +461,26 @@
                     <div id="q-img-box" class="mb-6 hidden"><img id="q-img-view" class="max-h-64 rounded-xl border border-gray-100 shadow-sm"></div>
                     <div class="space-y-3" id="q-options"></div>
                 </div>
+                
                 <div class="q-footer">
-                    <div class="flex gap-3">
-                        <button onclick="markReview()" class="px-4 py-2 rounded-xl text-sm font-bold border border-[#4318FF] text-[#4318FF]">Mark for Review & Next</button>
-                        <button onclick="clearRes()" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200">Clear Response</button>
-                    </div>
-                    <button onclick="saveNext()" class="px-6 py-2 rounded-xl bg-[#05CD99] text-white font-bold shadow-lg shadow-green-100">Save & Next</button>
-                </div>
+    <div class="flex gap-3">
+        <button onclick="markReview()" class="px-4 py-2 rounded-xl text-sm font-bold border border-[#4318FF] text-[#4318FF]">Mark for Review & Next</button>
+        <button onclick="clearRes()" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200">Clear Response</button>
+    </div>
+
+    <div class="flex gap-3 items-center">
+        <button id="btn-prev" onclick="prevQ()" class="px-6 py-2 rounded-xl border-2 border-gray-100 text-[#A3AED0] font-bold hover:bg-gray-50 transition-all flex items-center">
+            <i class="fas fa-chevron-left mr-2 text-xs"></i> Previous
+        </button>
+        <button onclick="saveNext()" class="px-8 py-2 rounded-xl bg-[#05CD99] text-white font-bold shadow-lg shadow-green-100 hover:scale-105 transition-all flex items-center">
+            Save & Next <i class="fas fa-chevron-right ml-2 text-xs"></i>
+        </button>
+    </div>
+</div>
+
+
+
+
             </div>
 
             <div class="q-right hidden md:flex">
