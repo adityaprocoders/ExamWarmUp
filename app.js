@@ -1585,6 +1585,19 @@ function confirmStartQuiz() {
 
 
 
+function prevQ() {
+    if (quizState.idx > 0) {
+        // Current question ka status save karein agar kuch select hai
+        if (quizState.status[quizState.idx] === undefined) {
+            quizState.status[quizState.idx] = 'na';
+        }
+        
+        quizState.idx--; // Peeche jayein
+        renderQ(); // Screen refresh
+    }
+}
+
+
 
 
 function updateTimerLabel(s) {
