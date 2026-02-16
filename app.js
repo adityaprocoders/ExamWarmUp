@@ -2125,29 +2125,48 @@ function filterSol(type) {
     if (!res || !res.details) return;
 
     container.innerHTML = '';
-    document.querySelectorAll('.sol-filter').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.sol-filter').forEach(btn => {
+        btn.classList.remove('active', 'bg-[#4318FF]', 'text-white');
+        btn.classList.add('bg-white', 'text-gray-500');
+    });
+
+    document.querySelectorAll('.sol-filter').forEach(btn => {
+        if (btn.getAttribute('onclick').includes(`'${type}'`)) {
+            btn.classList.add('active', 'bg-[#4318FF]', 'text-white');
+            btn.classList.remove('bg-white', 'text-gray-500');
+        }
+    });
     
     res.details.forEach((item, idx) => {
-        if(type !== 'all' && type !== item.status) return;
-        
-        const border = item.status === 'correct' ? 'border-green-500' : (item.status === 'wrong' ? 'border-red-500' : 'border-gray-300');
-        
-        container.innerHTML += `
-            <div class="bg-white p-6 rounded-xl border-l-4 ${border} shadow-sm mb-4">
-                <div class="flex justify-between mb-2">
-                    <span class="font-bold text-xs uppercase text-gray-400">Question ${idx+1} (${item.q.sub})</span>
-                    <span class="text-[10px] font-bold ${item.status==='correct'?'text-green-500':'text-red-500'} uppercase">${item.status}</span>
+    if(type !== 'all' && type !== item.status) return;
+
+    const border = item.status === 'correct' ? 'border-green-500' : (item.status === 'wrong' ? 'border-red-500' : 'border-gray-300');
+    
+    const solText = item.q.sol || ""; 
+
+    container.innerHTML += `
+        <div class="bg-white p-6 rounded-xl border-l-4 ${border} shadow-sm mb-4">
+            <div class="flex justify-between mb-2">
+                <span class="font-bold text-xs uppercase text-gray-400">Question ${idx+1} (${item.q.sub})</span>
+                <span class="text-[10px] font-bold ${item.status==='correct'?'text-green-500':'text-red-500'} uppercase">${item.status}</span>
+            </div>
+            <p class="text-sm font-semibold mb-3">${item.q.text}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                ${item.q.options.map((o, i) => `
+                    <div class="p-2 rounded-lg border ${i === item.q.correct ? 'bg-green-50 border-green-200 text-green-700 font-bold' : (i === item.userAns ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-100')}">
+                        ${String.fromCharCode(65+i)}. ${o}
+                    </div>
+                `).join('')}
+            </div>
+            
+            ${solText ? `
+                <div class="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                    <p class="text-[10px] font-extrabold text-indigo-600 mb-2 uppercase">Solution:</p>
+                    <div class="text-sm text-gray-700">${solText}</div>
                 </div>
-                <p class="text-sm font-semibold mb-3">${item.q.text}</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    ${item.q.options.map((o, i) => `
-                        <div class="p-2 rounded-lg border ${i === item.q.correct ? 'bg-green-50 border-green-200 text-green-700 font-bold' : (i === item.userAns ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-100')}">
-                            ${String.fromCharCode(65+i)}. ${o}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>`;
-    });
+            ` : ''}
+        </div>`;
+});
     
     if(window.MathJax) MathJax.typesetPromise();
 }
