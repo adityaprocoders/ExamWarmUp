@@ -2016,7 +2016,8 @@ function submitQuiz() {
     });
 
     const res = {
-        testId: quizState.id, // <--- IMPORTANT: Link result to the Test ID
+        testId: quizState.id,
+        category: quizState.category || "full", // <--- YE LINE ADD KAREIN (Taki category save ho)
         testTitle: quizState.title,
         score: s, max: m, correct: cor, wrong: wrg, attempted: att,
         totalQs: quizState.qs.length, posMarks: pos, negMarks: neg,
