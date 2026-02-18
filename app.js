@@ -406,7 +406,7 @@ async function loadAdminAnalytics() {
                     const acc = (res.correct / (res.attempted || 1)) * 100;
                     accuracySum += acc;
 
-                    globalActivityHTML += `
+                    globalActivityHTML = `
                         <tr class="border-b border-gray-50 hover:bg-gray-50 transition-all">
                             <td class="py-3">
                                 <p class="text-[11px] font-extrabold text-[#2B3674]">${res.testTitle || 'Untitled Test'}</p>
@@ -1985,10 +1985,6 @@ function showToast(msg, type = 'success') {
 function submitQuiz() {
     showLoader("Calculating Performance...");
     if(quizTimer) clearInterval(quizTimer);
-      
-
-
-
 
     const user = auth_fb.currentUser;
     if(!user) return alert("Session expired! Please login again.");
@@ -2018,6 +2014,9 @@ function submitQuiz() {
             status: status 
         };
     });
+    
+
+
 
     const res = {
         testId: quizState.id,
@@ -2029,14 +2028,16 @@ function submitQuiz() {
         timestamp: new Date().toISOString(),
         details: details 
     };
+        
 
     if (currentUserRole === 'owner') {
-        showToast("Admin Mode: Result not saved to global analytics", "info");
+        showToast("Admin Mode: Result not saved ", "info");
         document.getElementById('modal-quiz').classList.add('hidden');
         hideLoader();
-        showAnalysis(res);
+        showAnalysis(res); 
         return; 
     }
+
 
     db_fb.ref('results/' + user.uid).push(res).then(() => {
         document.getElementById('modal-quiz').classList.add('hidden');
@@ -2156,7 +2157,7 @@ function filterSol(type) {
     
     const solText = item.q.sol || ""; 
 
-    container.innerHTML = `
+    container.innerHTML += `
         <div class="bg-white p-6 rounded-xl border-l-4 ${border} shadow-sm mb-4">
             <div class="flex justify-between mb-2">
                 <span class="font-bold text-xs uppercase text-gray-400">Question ${idx+1} (${item.q.sub})</span>
