@@ -1983,6 +1983,16 @@ function showToast(msg, type = 'success') {
 
 // --- ANALYSIS LOGIC ---
 function submitQuiz() {
+
+    const userConfirmed = confirm(
+        `Are you sure you want to submit the test?`
+    );
+
+    if (!userConfirmed) {
+        return; 
+    }
+
+
     showLoader("Calculating Performance...");
     if(quizTimer) clearInterval(quizTimer);
 
