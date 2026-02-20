@@ -1613,42 +1613,46 @@ function updateTimerLabel(s) {
 function startTimer() {
     if(quizTimer) clearInterval(quizTimer);
     quizTimer = setInterval(() => {
-        // 1. Global Exam Timer (Total 2 Hours)
+        // 1. Global Exam Timer
         if (quizState.timeLeft > 0) quizState.timeLeft--;
         updateTimerDisplay('q-timer', quizState.timeLeft);
         
-        // 2. Section Specific Timer (70/30/20 Mins)
-        if (quizState.secTimeLeft > 0) {
-            quizState.secTimeLeft--;
-        } else {
-            // JAB CURRENT SECTION KA ALLOTTED TIME KHATAM HO JAYE
-            const sections = Object.keys(quizState.secMap);
-            const currentIndex = sections.indexOf(quizState.currSec);
+        // 2. Section Specific Timer (Only for Full Mocks & PYQs)
+        const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
 
-            if (currentIndex < sections.length - 1) {
-                // AGLE SECTION PAR BHEJO
-                const nextSection = sections[currentIndex + 1];
-                showToast(`Time Up! Auto-switching to ${nextSection}`, "info");
-                
-                quizState.currSec = nextSection;
-                quizState.idx = quizState.secMap[nextSection]; 
-                
-                // Agle section ka fresh time set karo
-                const limit = SECTION_LIMITS[nextSection] || 20;
-                quizState.secTimeLeft = limit * 60;
-
-                updateTimerLabel(nextSection);
-                renderTabs();
-                renderQ();
+        if (isTimedExam) {
+            if (quizState.secTimeLeft > 0) {
+                quizState.secTimeLeft--;
+                updateTimerDisplay('sec-timer', quizState.secTimeLeft);
             } else {
-                // AGAR LAST SECTION THA TO SEEDHA SUBMIT
-                submitQuiz(true); 
-                return;
+                // Auto-switching Logic
+                const sections = Object.keys(quizState.secMap);
+                const currentIndex = sections.indexOf(quizState.currSec);
+
+                if (currentIndex < sections.length - 1) {
+                    const nextSection = sections[currentIndex + 1];
+                    showToast(`Time Up! Auto-switching to ${nextSection}`, "info");
+                    
+                    quizState.currSec = nextSection;
+                    quizState.idx = quizState.secMap[nextSection]; 
+                    
+                    // Allotted time only for timed exams
+                    const limit = SECTION_LIMITS[nextSection] || 20;
+                    quizState.secTimeLeft = limit * 60;
+
+                    updateTimerLabel(nextSection);
+                    renderTabs();
+                    renderQ();
+                } else {
+                    submitQuiz(true); 
+                    return;
+                }
             }
+        } else {
+            // Agar normal test hai (daily/sectional), toh section timer ko global timer ke barabar rakhein
+            updateTimerDisplay('sec-timer', quizState.timeLeft);
         }
-        updateTimerDisplay('sec-timer', quizState.secTimeLeft);
         
-        // Emergency Check: Agar pura exam time khatam ho jaye
         if(quizState.timeLeft <= 0) submitQuiz(true);
     }, 1000);
 }
@@ -1787,23 +1791,24 @@ function changeSec(s) {
     const currentIndex = sections.indexOf(quizState.currSec);
     const targetIndex = sections.indexOf(s);
 
-    // Backward navigation lock (NIMCET Rule)
-    if (targetIndex < currentIndex) {
-        showToast("Previous sections are locked.", "error");
+    // Rule: Forward only (Only for Full/PYQ exams)
+    const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
+    
+    if (isTimedExam && targetIndex < currentIndex) {
+        showToast("Previous sections are locked in Full Mock mode.", "error");
         return;
     }
 
     if (quizState.currSec === s) return;
 
-    // UI Change se pehle state update
     quizState.currSec = s;
     quizState.idx = quizState.secMap[s];
     
-    // YAHAN FIX HAI: Manual switch par naya time assign karo
-    const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
-    const limit = SECTION_LIMITS[s] || 20;
-    
-    quizState.secTimeLeft = isTimedExam ? (limit * 60) : (quizState.time || 120) * 60;
+    // Timer Reset: Only if it's a timed exam
+    if (isTimedExam) {
+        const limit = SECTION_LIMITS[s] || 20;
+        quizState.secTimeLeft = limit * 60;
+    }
 
     updateTimerLabel(s);
     renderTabs(); 
