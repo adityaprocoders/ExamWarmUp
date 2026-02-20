@@ -1506,18 +1506,17 @@ function startQuiz(tid) {
     });
 }
 
+
 function confirmStartQuiz() {
     const t = pendingTestData;
     if (!t) return;
 
-    // 1. Modal band karein
     document.getElementById('modal-instructions').classList.add('hidden');
     document.getElementById('modal-instructions').style.display = 'none';
 
     const tid = t.id;
     const rawQuestions = t.qs || t.questions || [];
 
-    // 2. Section Groups (Palette fix ke liye)
     const SECTION_GROUPS = { 
         'Math': ['Math', 'Mathematics', 'sec_Math'], 
         'Reas': ['Reas', 'Reasoning'], 
@@ -1539,8 +1538,7 @@ function confirmStartQuiz() {
         }
     });
 
-    // 3. Quiz State Initialization (Fixing NaN Error)
-    const initialSection = Object.keys(secMap)[0] || 'General';
+    const initialSection = Object.keys(secMap)[0] || 'Math';
     
     quizState = { 
         ...t, 
@@ -1555,17 +1553,12 @@ function confirmStartQuiz() {
         currSec: initialSection 
     };
 
-    // 4. Section Timer Fix: Yahan check karein ki SECTION_LIMITS global hai ya nahi
-    // Agar SECTION_LIMITS nahi mil raha toh default 40 mins set karein
+    // Yahan fix: Initial section ko uska allotted time milega
     const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
-    const defaultLimits = { 'Math': 70, 'Reas': 30, 'Combined': 20 };
-    
-    // Yahan fix hai: Humne local fallback (defaultLimits) add kiya hai
-    const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[initialSection] : defaultLimits[initialSection]) || 40;
+    const limit = SECTION_LIMITS[initialSection] || 70;
     
     quizState.secTimeLeft = isTimedExam ? (limit * 60) : (t.time || 120) * 60;
 
-    // 5. Interface UI elements ko reset aur show karein
     const quizModal = document.getElementById('modal-quiz');
     if (quizModal) {
         quizModal.classList.remove('hidden');
@@ -1575,8 +1568,7 @@ function confirmStartQuiz() {
     const qRight = document.querySelector('.q-right');
     if(qRight) qRight.classList.remove('hidden');
 
-    // 6. Refresh UI
-    updateTimerLabel(initialSection); // Label set karein
+    updateTimerLabel(initialSection);
     renderTabs(); 
     renderQ(); 
     startTimer();
@@ -1795,21 +1787,23 @@ function changeSec(s) {
     const currentIndex = sections.indexOf(quizState.currSec);
     const targetIndex = sections.indexOf(s);
 
-    // Rule: Forward only. Piche jana mana hai.
+    // Backward navigation lock (NIMCET Rule)
     if (targetIndex < currentIndex) {
-        showToast("Access Denied: You cannot return to a finished section.", "error");
+        showToast("Previous sections are locked.", "error");
         return;
     }
 
     if (quizState.currSec === s) return;
 
-    // Manual Section Change: Fresh Timer Start
+    // UI Change se pehle state update
     quizState.currSec = s;
     quizState.idx = quizState.secMap[s];
     
-    // Naye section ka pura allotted time assign karna
+    // YAHAN FIX HAI: Manual switch par naya time assign karo
+    const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
     const limit = SECTION_LIMITS[s] || 20;
-    quizState.secTimeLeft = limit * 60;
+    
+    quizState.secTimeLeft = isTimedExam ? (limit * 60) : (quizState.time || 120) * 60;
 
     updateTimerLabel(s);
     renderTabs(); 
