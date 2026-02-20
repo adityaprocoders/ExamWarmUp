@@ -1621,41 +1621,43 @@ function updateTimerLabel(s) {
 function startTimer() {
     if(quizTimer) clearInterval(quizTimer);
     quizTimer = setInterval(() => {
-        // Exam Total Timer
+        // 1. Global Exam Timer (Total 2 Hours)
         if (quizState.timeLeft > 0) quizState.timeLeft--;
         updateTimerDisplay('q-timer', quizState.timeLeft);
         
-        // Section Specific Timer
+        // 2. Section Specific Timer (70/30/20 Mins)
         if (quizState.secTimeLeft > 0) {
             quizState.secTimeLeft--;
-        } else if (quizState.category === 'full' || quizState.category === 'pyq') {
-            // --- AUTO-SWITCH INITIATED ---
+        } else {
+            // JAB CURRENT SECTION KA ALLOTTED TIME KHATAM HO JAYE
             const sections = Object.keys(quizState.secMap);
             const currentIndex = sections.indexOf(quizState.currSec);
 
             if (currentIndex < sections.length - 1) {
+                // AGLE SECTION PAR BHEJO
                 const nextSection = sections[currentIndex + 1];
-                showToast(`Time up! Switching to ${nextSection} section.`, "info");
+                showToast(`Time Up! Auto-switching to ${nextSection}`, "info");
                 
-                // We directly trigger the jump logic here
                 quizState.currSec = nextSection;
-                quizState.idx = quizState.secMap[nextSection];
+                quizState.idx = quizState.secMap[nextSection]; 
                 
-                // Set the timer for the new section
-                const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[nextSection] : 40) || 40;
+                // Agle section ka fresh time set karo
+                const limit = SECTION_LIMITS[nextSection] || 20;
                 quizState.secTimeLeft = limit * 60;
 
                 updateTimerLabel(nextSection);
                 renderTabs();
                 renderQ();
             } else {
-                // If it's the last section, auto-submit the test
-                submitQuiz();
+                // AGAR LAST SECTION THA TO SEEDHA SUBMIT
+                submitQuiz(true); 
+                return;
             }
         }
         updateTimerDisplay('sec-timer', quizState.secTimeLeft);
         
-        if(quizState.timeLeft <= 0) submitQuiz();
+        // Emergency Check: Agar pura exam time khatam ho jaye
+        if(quizState.timeLeft <= 0) submitQuiz(true);
     }, 1000);
 }
 
@@ -1793,25 +1795,22 @@ function changeSec(s) {
     const currentIndex = sections.indexOf(quizState.currSec);
     const targetIndex = sections.indexOf(s);
 
-    // --- RESTRICTION: Forward navigation only ---
+    // Rule: Forward only. Piche jana mana hai.
     if (targetIndex < currentIndex) {
-        showToast("Navigation to previous sections is not allowed.", "error");
+        showToast("Access Denied: You cannot return to a finished section.", "error");
         return;
     }
 
-    if (quizState.currSec === s && quizState.idx === quizState.secMap[s]) return;
+    if (quizState.currSec === s) return;
 
+    // Manual Section Change: Fresh Timer Start
     quizState.currSec = s;
-
-    // Reset section timer for the manual switch
-    if(quizState.category === 'full' || quizState.category === 'pyq') {
-        const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[s] : 40) || 40;
-        quizState.secTimeLeft = limit * 60;
-    }
-
-    // Move to first question of the new section
     quizState.idx = quizState.secMap[s];
     
+    // Naye section ka pura allotted time assign karna
+    const limit = SECTION_LIMITS[s] || 20;
+    quizState.secTimeLeft = limit * 60;
+
     updateTimerLabel(s);
     renderTabs(); 
     renderQ();
@@ -1982,16 +1981,10 @@ function showToast(msg, type = 'success') {
 
 
 // --- ANALYSIS LOGIC ---
-function submitQuiz() {
-
-    const userConfirmed = confirm(
-        `Are you sure you want to submit the test?`
-    );
-
-    if (!userConfirmed) {
-        return; 
-    }
-
+function submitQuiz(isAuto = false) {
+    if (!isAuto) {
+        const userConfirmed = confirm("Are you sure you want to submit the test?");
+        if (!userConfirmed) return;
 
     showLoader("Calculating Performance...");
     if(quizTimer) clearInterval(quizTimer);
@@ -2058,6 +2051,7 @@ function submitQuiz() {
         console.error("Firebase Error:", err);
         showToast("Error saving results!", "error");
     });
+}
 }
 
 
