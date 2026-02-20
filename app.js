@@ -1506,17 +1506,18 @@ function startQuiz(tid) {
     });
 }
 
-
 function confirmStartQuiz() {
     const t = pendingTestData;
     if (!t) return;
 
+    // 1. Modal band karein
     document.getElementById('modal-instructions').classList.add('hidden');
     document.getElementById('modal-instructions').style.display = 'none';
 
     const tid = t.id;
     const rawQuestions = t.qs || t.questions || [];
 
+    // 2. Section Groups (Palette fix ke liye)
     const SECTION_GROUPS = { 
         'Math': ['Math', 'Mathematics', 'sec_Math'], 
         'Reas': ['Reas', 'Reasoning'], 
@@ -1538,7 +1539,8 @@ function confirmStartQuiz() {
         }
     });
 
-    const initialSection = Object.keys(secMap)[0] || 'Math';
+    // 3. Quiz State Initialization (Fixing NaN Error)
+    const initialSection = Object.keys(secMap)[0] || 'General';
     
     quizState = { 
         ...t, 
@@ -1553,12 +1555,17 @@ function confirmStartQuiz() {
         currSec: initialSection 
     };
 
-    // Yahan fix: Initial section ko uska allotted time milega
+    // 4. Section Timer Fix: Yahan check karein ki SECTION_LIMITS global hai ya nahi
+    // Agar SECTION_LIMITS nahi mil raha toh default 40 mins set karein
     const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
-    const limit = SECTION_LIMITS[initialSection] || 70;
+    const defaultLimits = { 'Math': 70, 'Reas': 30, 'Combined': 20 };
+    
+    // Yahan fix hai: Humne local fallback (defaultLimits) add kiya hai
+    const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[initialSection] : defaultLimits[initialSection]) || 40;
     
     quizState.secTimeLeft = isTimedExam ? (limit * 60) : (t.time || 120) * 60;
 
+    // 5. Interface UI elements ko reset aur show karein
     const quizModal = document.getElementById('modal-quiz');
     if (quizModal) {
         quizModal.classList.remove('hidden');
@@ -1568,7 +1575,8 @@ function confirmStartQuiz() {
     const qRight = document.querySelector('.q-right');
     if(qRight) qRight.classList.remove('hidden');
 
-    updateTimerLabel(initialSection);
+    // 6. Refresh UI
+    updateTimerLabel(initialSection); // Label set karein
     renderTabs(); 
     renderQ(); 
     startTimer();
@@ -1613,47 +1621,47 @@ function updateTimerLabel(s) {
 function startTimer() {
     if(quizTimer) clearInterval(quizTimer);
     quizTimer = setInterval(() => {
-        // 1. Global Exam Timer
+        // 1. Total Exam Timer
         if (quizState.timeLeft > 0) quizState.timeLeft--;
         updateTimerDisplay('q-timer', quizState.timeLeft);
         
-        // 2. Section Specific Timer (Only for Full Mocks & PYQs)
-        const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
+        // 2. Section Specific Timer
+        if (quizState.secTimeLeft > 0) {
+            quizState.secTimeLeft--;
+        } 
+        // 3. Section Switch Logic (Sirf Full Mock ya PYQ ke liye)
+        else if (quizState.category === 'full' || quizState.category === 'pyq') {
+            const sections = Object.keys(quizState.secMap);
+            const currentIndex = sections.indexOf(quizState.currSec);
 
-        if (isTimedExam) {
-            if (quizState.secTimeLeft > 0) {
-                quizState.secTimeLeft--;
-                updateTimerDisplay('sec-timer', quizState.secTimeLeft);
+            if (currentIndex < sections.length - 1) {
+                const nextSection = sections[currentIndex + 1];
+                
+                // --- FIX: Force State Update before UI Render ---
+                quizState.currSec = nextSection;
+                quizState.idx = quizState.secMap[nextSection]; // Agle section ke pehle Q par jump
+                
+                // Naya Section Time set karein
+                const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[nextSection] : 40) || 40;
+                quizState.secTimeLeft = limit * 60;
+
+                showToast(`Time up! Switching to ${nextSection} section.`, "info");
+                
+                // --- UI REFRESH ---
+                updateTimerLabel(nextSection);
+                renderTabs(); // Tabs mein active state change karega
+                renderQ();    // Naye question aur pallet ko render karega
             } else {
-                // Auto-switching Logic
-                const sections = Object.keys(quizState.secMap);
-                const currentIndex = sections.indexOf(quizState.currSec);
-
-                if (currentIndex < sections.length - 1) {
-                    const nextSection = sections[currentIndex + 1];
-                    showToast(`Time Up! Auto-switching to ${nextSection}`, "info");
-                    
-                    quizState.currSec = nextSection;
-                    quizState.idx = quizState.secMap[nextSection]; 
-                    
-                    // Allotted time only for timed exams
-                    const limit = SECTION_LIMITS[nextSection] || 20;
-                    quizState.secTimeLeft = limit * 60;
-
-                    updateTimerLabel(nextSection);
-                    renderTabs();
-                    renderQ();
-                } else {
-                    submitQuiz(true); 
-                    return;
-                }
+                // Last section khatam hone par auto-submit
+                submitQuiz();
             }
-        } else {
-            // Agar normal test hai (daily/sectional), toh section timer ko global timer ke barabar rakhein
-            updateTimerDisplay('sec-timer', quizState.timeLeft);
         }
         
-        if(quizState.timeLeft <= 0) submitQuiz(true);
+        
+        updateTimerDisplay('sec-timer', quizState.secTimeLeft);
+        
+       
+        if(quizState.timeLeft <= 0) submitQuiz();
     }, 1000);
 }
 
@@ -1791,25 +1799,25 @@ function changeSec(s) {
     const currentIndex = sections.indexOf(quizState.currSec);
     const targetIndex = sections.indexOf(s);
 
-    // Rule: Forward only (Only for Full/PYQ exams)
-    const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
-    
-    if (isTimedExam && targetIndex < currentIndex) {
-        showToast("Previous sections are locked in Full Mock mode.", "error");
+    // --- RESTRICTION: Forward navigation only ---
+    if (targetIndex < currentIndex) {
+        showToast("Navigation to previous sections is not allowed.", "error");
         return;
     }
 
-    if (quizState.currSec === s) return;
+    if (quizState.currSec === s && quizState.idx === quizState.secMap[s]) return;
 
     quizState.currSec = s;
-    quizState.idx = quizState.secMap[s];
-    
-    // Timer Reset: Only if it's a timed exam
-    if (isTimedExam) {
-        const limit = SECTION_LIMITS[s] || 20;
+
+    // Reset section timer for the manual switch
+    if(quizState.category === 'full' || quizState.category === 'pyq') {
+        const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[s] : 40) || 40;
         quizState.secTimeLeft = limit * 60;
     }
 
+    // Move to first question of the new section
+    quizState.idx = quizState.secMap[s];
+    
     updateTimerLabel(s);
     renderTabs(); 
     renderQ();
@@ -1980,10 +1988,16 @@ function showToast(msg, type = 'success') {
 
 
 // --- ANALYSIS LOGIC ---
-function submitQuiz(isAuto = false) {
-    if (!isAuto) {
-        const userConfirmed = confirm("Are you sure you want to submit the test?");
-        if (!userConfirmed) return;
+function submitQuiz() {
+
+    const userConfirmed = confirm(
+        `Are you sure you want to submit the test?`
+    );
+
+    if (!userConfirmed) {
+        return; 
+    }
+
 
     showLoader("Calculating Performance...");
     if(quizTimer) clearInterval(quizTimer);
@@ -2050,7 +2064,6 @@ function submitQuiz(isAuto = false) {
         console.error("Firebase Error:", err);
         showToast("Error saving results!", "error");
     });
-}
 }
 
 
