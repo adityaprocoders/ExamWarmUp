@@ -1506,18 +1506,17 @@ function startQuiz(tid) {
     });
 }
 
+
 function confirmStartQuiz() {
     const t = pendingTestData;
     if (!t) return;
 
-    // 1. Modal band karein
     document.getElementById('modal-instructions').classList.add('hidden');
     document.getElementById('modal-instructions').style.display = 'none';
 
     const tid = t.id;
     const rawQuestions = t.qs || t.questions || [];
 
-    // 2. Section Groups (Palette fix ke liye)
     const SECTION_GROUPS = { 
         'Math': ['Math', 'Mathematics', 'sec_Math'], 
         'Reas': ['Reas', 'Reasoning'], 
@@ -1539,8 +1538,7 @@ function confirmStartQuiz() {
         }
     });
 
-    // 3. Quiz State Initialization (Fixing NaN Error)
-    const initialSection = Object.keys(secMap)[0] || 'General';
+    const initialSection = Object.keys(secMap)[0] || 'Math';
     
     quizState = { 
         ...t, 
@@ -1555,17 +1553,12 @@ function confirmStartQuiz() {
         currSec: initialSection 
     };
 
-    // 4. Section Timer Fix: Yahan check karein ki SECTION_LIMITS global hai ya nahi
-    // Agar SECTION_LIMITS nahi mil raha toh default 40 mins set karein
+    // Yahan fix: Initial section ko uska allotted time milega
     const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
-    const defaultLimits = { 'Math': 70, 'Reas': 30, 'Combined': 20 };
-    
-    // Yahan fix hai: Humne local fallback (defaultLimits) add kiya hai
-    const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[initialSection] : defaultLimits[initialSection]) || 40;
+    const limit = SECTION_LIMITS[initialSection] || 70;
     
     quizState.secTimeLeft = isTimedExam ? (limit * 60) : (t.time || 120) * 60;
 
-    // 5. Interface UI elements ko reset aur show karein
     const quizModal = document.getElementById('modal-quiz');
     if (quizModal) {
         quizModal.classList.remove('hidden');
@@ -1575,8 +1568,7 @@ function confirmStartQuiz() {
     const qRight = document.querySelector('.q-right');
     if(qRight) qRight.classList.remove('hidden');
 
-    // 6. Refresh UI
-    updateTimerLabel(initialSection); // Label set karein
+    updateTimerLabel(initialSection);
     renderTabs(); 
     renderQ(); 
     startTimer();
@@ -1621,47 +1613,43 @@ function updateTimerLabel(s) {
 function startTimer() {
     if(quizTimer) clearInterval(quizTimer);
     quizTimer = setInterval(() => {
-        // 1. Total Exam Timer
+        // 1. Global Exam Timer (Total 2 Hours)
         if (quizState.timeLeft > 0) quizState.timeLeft--;
         updateTimerDisplay('q-timer', quizState.timeLeft);
         
-        // 2. Section Specific Timer
+        // 2. Section Specific Timer (70/30/20 Mins)
         if (quizState.secTimeLeft > 0) {
             quizState.secTimeLeft--;
-        } 
-        // 3. Section Switch Logic (Sirf Full Mock ya PYQ ke liye)
-        else if (quizState.category === 'full' || quizState.category === 'pyq') {
+        } else {
+            // JAB CURRENT SECTION KA ALLOTTED TIME KHATAM HO JAYE
             const sections = Object.keys(quizState.secMap);
             const currentIndex = sections.indexOf(quizState.currSec);
 
             if (currentIndex < sections.length - 1) {
+                // AGLE SECTION PAR BHEJO
                 const nextSection = sections[currentIndex + 1];
+                showToast(`Time Up! Auto-switching to ${nextSection}`, "info");
                 
-                // --- FIX: Force State Update before UI Render ---
                 quizState.currSec = nextSection;
-                quizState.idx = quizState.secMap[nextSection]; // Agle section ke pehle Q par jump
+                quizState.idx = quizState.secMap[nextSection]; 
                 
-                // Naya Section Time set karein
-                const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[nextSection] : 40) || 40;
+                // Agle section ka fresh time set karo
+                const limit = SECTION_LIMITS[nextSection] || 20;
                 quizState.secTimeLeft = limit * 60;
 
-                showToast(`Time up! Switching to ${nextSection} section.`, "info");
-                
-                // --- UI REFRESH ---
                 updateTimerLabel(nextSection);
-                renderTabs(); // Tabs mein active state change karega
-                renderQ();    // Naye question aur pallet ko render karega
+                renderTabs();
+                renderQ();
             } else {
-                // Last section khatam hone par auto-submit
-                submitQuiz();
+                // AGAR LAST SECTION THA TO SEEDHA SUBMIT
+                submitQuiz(true); 
+                return;
             }
         }
-        
-        
         updateTimerDisplay('sec-timer', quizState.secTimeLeft);
         
-       
-        if(quizState.timeLeft <= 0) submitQuiz();
+        // Emergency Check: Agar pura exam time khatam ho jaye
+        if(quizState.timeLeft <= 0) submitQuiz(true);
     }, 1000);
 }
 
@@ -1719,24 +1707,73 @@ async function downloadAllActivityPDF() {
                 res.testTitle || "Test",
                 finalCat, 
                 res.timestamp ? new Date(res.timestamp).toLocaleDateString('en-GB') : 'N/A',
-                res.max || 0,
-                res.score || 0,
-                res.correct || 0,
-                res.wrong || 0,
-                `${acc}%`,
-                res.timeTaken || "00:01"
+                res.attempted || 0,   // Attempted after Date
+                res.correct || 0,     // Correct
+                res.wrong || 0,       // Wrng.
+                res.max || 0,         // Max
+                res.score || 0,       // Score
+                getEstimatedAIR(res.score),
+                `${acc}%`,            // Accuracy
+                res.timeTaken || "00:00" // Time
             ];
         });
 
         // --- 3. TABLE GENERATION WITH UPDATED ROW COLORS ---
         doc.autoTable({
             startY: 50,
-            head: [['#', 'Test Name', 'Category', 'Date', 'Max', 'Score', 'Cor.', 'Wrng.', 'Acc.', 'Time']],
+            head: [['#', 'Test Name', 'Category', 'Date', 'Att.', 'Cor.', 'Wrng.', 'Max', 'Score', 'Rank', 'Acc.', 'Time']],
             body: tableBody,
             theme: 'grid',
-            headStyles: { fillColor: [67, 24, 255], textColor: [255, 255, 255] },
-            styles: { fontSize: 9, cellPadding: 3 },
+            headStyles: { fillColor: [67, 24, 255], textColor: [255, 255, 255], halign: 'center' },
             
+
+            didDrawCell: function(data) {
+        // Sirf Header row check karein (data.section === 'head')
+        if (data.section === 'head') {
+            // 1. Cor. Header (Index 5) -> Green Background
+            if (data.column.index === 5) {
+                doc.setFillColor(5, 205, 153); // Green (#05CD99)
+                doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.text(data.cell.text, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2, { align: 'center', baseline: 'middle' });
+            }
+            // 2. Wrng. Header (Index 6) -> Red Background
+            if (data.column.index === 6) {
+                doc.setFillColor(238, 93, 80); // Red (#EE5D50)
+                doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.text(data.cell.text, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2, { align: 'center', baseline: 'middle' });
+            }
+                  
+        }
+    },
+            
+            
+            
+            
+            
+            styles: { fontSize: 8.5, cellPadding: 3, valign: 'middle' },
+            
+
+             columnStyles: {
+    0: { halign: 'center' },
+    4: { halign: 'center' , fontStyle: 'bold'},
+    5: { halign: 'center' ,fontStyle: 'bold'},
+    6: { halign: 'center' , fontStyle: 'bold'}, 
+    7: { halign: 'center' , fontStyle: 'bold'},
+    8: { halign: 'center', fontStyle: 'bold' }, // Score
+    9: { halign: 'center', fontStyle: 'bold' }, // Rank (Bold for visibility)
+    10: { halign: 'center' , fontStyle: 'bold'},
+    11: { halign: 'center' }
+},
+
+
+
+
+
+
+
+
             didParseCell: function(data) {
                 if (data.section === 'body') {
                     const rowCategory = data.row.cells[2].text[0]; 
@@ -1753,9 +1790,16 @@ async function downloadAllActivityPDF() {
                     }
 
                     // Score Column (#5) ko bold rakhne ke liye
-                    if (data.column.index === 5) {
+                    if (data.column.index === 9) {
                         data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.textColor = [67, 24, 255];
+                        data.cell.styles.textColor = [67, 24, 255]; 
+                        
+                    }
+                    
+                    if (data.column.index === 8) {
+                         data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [5, 205, 153];  
+                        // deep green
                     }
                 }
             }
@@ -1799,25 +1843,24 @@ function changeSec(s) {
     const currentIndex = sections.indexOf(quizState.currSec);
     const targetIndex = sections.indexOf(s);
 
-    // --- RESTRICTION: Forward navigation only ---
+    // Backward navigation lock (NIMCET Rule)
     if (targetIndex < currentIndex) {
-        showToast("Navigation to previous sections is not allowed.", "error");
+        showToast("Previous sections are locked.", "error");
         return;
     }
 
-    if (quizState.currSec === s && quizState.idx === quizState.secMap[s]) return;
+    if (quizState.currSec === s) return;
 
+    // UI Change se pehle state update
     quizState.currSec = s;
-
-    // Reset section timer for the manual switch
-    if(quizState.category === 'full' || quizState.category === 'pyq') {
-        const limit = (typeof SECTION_LIMITS !== 'undefined' ? SECTION_LIMITS[s] : 40) || 40;
-        quizState.secTimeLeft = limit * 60;
-    }
-
-    // Move to first question of the new section
     quizState.idx = quizState.secMap[s];
     
+    // YAHAN FIX HAI: Manual switch par naya time assign karo
+    const isTimedExam = (quizState.category === 'full' || quizState.category === 'pyq');
+    const limit = SECTION_LIMITS[s] || 20;
+    
+    quizState.secTimeLeft = isTimedExam ? (limit * 60) : (quizState.time || 120) * 60;
+
     updateTimerLabel(s);
     renderTabs(); 
     renderQ();
@@ -1988,16 +2031,10 @@ function showToast(msg, type = 'success') {
 
 
 // --- ANALYSIS LOGIC ---
-function submitQuiz() {
-
-    const userConfirmed = confirm(
-        `Are you sure you want to submit the test?`
-    );
-
-    if (!userConfirmed) {
-        return; 
-    }
-
+function submitQuiz(isAuto = false) {
+    if (!isAuto) {
+        const userConfirmed = confirm("Are you sure you want to submit the test?");
+        if (!userConfirmed) return;
 
     showLoader("Calculating Performance...");
     if(quizTimer) clearInterval(quizTimer);
@@ -2064,6 +2101,7 @@ function submitQuiz() {
         console.error("Firebase Error:", err);
         showToast("Error saving results!", "error");
     });
+}
 }
 
 
