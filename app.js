@@ -34,8 +34,11 @@ const db_fb = firebase.database();
 
 let currentUserRole = 'user';
 let currentBuilderMode = 'manual';
+let currentSolutionFilter = 'all'; 
 
 // --- AUTHENTICATION ---
+
+
 async function generateHash(message) {
     const msgBuffer = new TextEncoder().encode(message);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -2187,6 +2190,7 @@ function switchAnalysisTab(tab) {
 }
 
 function filterSol(type) {
+    currentSolutionFilter = type; 
     const res = window.currentRes;
     const container = document.getElementById('solutions-list');
     if (!res || !res.details) return;
@@ -2238,6 +2242,147 @@ function filterSol(type) {
     if(window.MathJax) MathJax.typesetPromise();
 }
 
+
+function cleanLaTeX(text) {
+    if (!text) return "";
+    return text
+        .replace(/\$/g, "") // $ symbols hatao
+        .replace(/\\Rightarrow/g, " → ") // Arrows
+        .replace(/\\rightarrow/g, " → ")
+        .replace(/\\text\{([^}]+)\}/g, "$1") // \text{...} fix
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1/$2)") // Fractions
+        .replace(/\^2/g, "²") // Powers
+        .replace(/\^3/g, "³")
+        .replace(/\\theta/g, "θ")
+        .replace(/\\pi/g, "π")
+        .replace(/\\angle/g, "∠")
+        .replace(/\\Delta/g, "Δ")
+        .trim();
+}
+
+
+// --- MAIN DOWNLOAD FUNCTION ---
+async function downloadFilteredSolutionPDF() {
+    const { jsPDF } = window.jspdf;
+    const res = window.currentRes;
+    
+    if (!res || !res.details) return showToast("No test data found!", "error");
+
+    showLoader("Generating PDF...");
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    let yPos = 55;
+
+    // --- Header Section ---
+    doc.setFillColor(67, 24, 255);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("ExamWarmUp Analysis", margin, 18);
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    const studentName = document.getElementById('display-user-name')?.innerText || "Candidate";
+    doc.text(`Student: ${studentName} | Test: ${res.testTitle}`, margin, 26);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, 31);
+
+    // --- Summary Table ---
+    doc.autoTable({
+        startY: 45,
+        head: [['Total', 'Correct', 'Wrong', 'Score', 'Accuracy']],
+        body: [[res.totalQs, res.correct, res.wrong, `${res.score}/${res.max}`, `${Math.round((res.correct/(res.attempted||1))*100)}%`]],
+        theme: 'grid',
+        headStyles: { fillColor: [244, 247, 254], textColor: [67, 24, 255] }
+    });
+
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // --- Solutions Processing ---
+    const filteredData = res.details.filter(item => {
+        if (currentSolutionFilter === 'all') return true;
+        return item.status === currentSolutionFilter;
+    });
+
+    filteredData.forEach((item, idx) => {
+        // LaTeX Cleaning before printing
+        const qClean = cleanLaTeX(item.q.text);
+        const sClean = item.q.sol ? cleanLaTeX(item.q.sol) : "";
+
+        const qLines = doc.splitTextToSize(qClean, contentWidth - 10);
+        const solLines = sClean ? doc.splitTextToSize(sClean, contentWidth - 15) : [];
+        
+        // Dynamic Card Height Calculation
+        const cardHeight = 35 + (qLines.length * 5) + (solLines.length > 0 ? (solLines.length * 4) + 12 : 0);
+
+        if (yPos + cardHeight > 280) { doc.addPage(); yPos = 20; }
+
+        const statusColor = item.status === 'correct' ? [5, 205, 153] : (item.status === 'wrong' ? [238, 93, 80] : [160, 160, 160]);
+
+        // Draw Card UI
+        doc.setDrawColor(230, 230, 230);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(margin, yPos, contentWidth, cardHeight, 2, 2, 'FD');
+        doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.rect(margin, yPos, 1.5, cardHeight, 'F'); // Left status bar
+
+        // Info & Status
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Q${idx + 1} (${item.q.sub.toUpperCase()})`, margin + 5, yPos + 7);
+        doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.text(item.status.toUpperCase(), margin + contentWidth - 5, yPos + 7, { align: 'right' });
+
+        // Question
+        doc.setTextColor(43, 54, 116);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(qLines, margin + 5, yPos + 15);
+
+        let optY = yPos + 18 + (qLines.length * 5);
+
+        // Options
+        item.q.options.forEach((opt, oIdx) => {
+            const cleanOpt = cleanLaTeX(opt);
+            const isCorrect = oIdx === item.q.correct;
+            const isUser = oIdx === item.userAns;
+
+            if (isCorrect) { doc.setFillColor(240, 253, 244); doc.setDrawColor(5, 205, 153); }
+            else if (isUser) { doc.setFillColor(254, 242, 242); doc.setDrawColor(238, 93, 80); }
+            else { doc.setFillColor(255, 255, 255); doc.setDrawColor(240, 240, 240); }
+
+            doc.roundedRect(margin + 5, optY - 4, contentWidth - 10, 7, 1, 1, 'FD');
+            doc.setFont("helvetica", "normal");
+            doc.text(`${String.fromCharCode(65+oIdx)}. ${cleanOpt}`, margin + 8, optY + 1);
+            optY += 9;
+        });
+
+        // Solution Box (Fixed for LaTeX)
+        if (sClean) {
+            const solBoxY = optY + 2;
+            const solH = (solLines.length * 4) + 8;
+            doc.setFillColor(244, 247, 254);
+            doc.roundedRect(margin + 5, solBoxY, contentWidth - 10, solH, 1, 1, 'F');
+            doc.setTextColor(67, 24, 255);
+            doc.setFont("helvetica", "bold");
+            doc.text("SOLUTION:", margin + 8, solBoxY + 4);
+            doc.setTextColor(80, 80, 80);
+            doc.setFont("helvetica", "normal");
+            doc.text(solLines, margin + 8, solBoxY + 8);
+            yPos = solBoxY + solH + 15;
+        } else {
+            yPos = optY + 10;
+        }
+    });
+
+    doc.save(`${studentName}_Analysis_Fixed.pdf`);
+    hideLoader();
+    showToast("PDF Download  Successfully!", "success");
+}
+
 function filterSection(s) { loadTests(`sec_${s}`); }
 
 function toggleSidebar() {
@@ -2254,6 +2399,9 @@ function toggleSidebar() {
         document.body.style.overflow = 'auto';
     }
 }
+
+
+
 
 // Sidebar links par click karne par mobile mein sidebar auto-close ho jaye
 document.querySelectorAll('.nav-link').forEach(link => {
