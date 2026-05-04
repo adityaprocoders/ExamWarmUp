@@ -2516,7 +2516,249 @@ async function downloadPerformancePDF() {
 
 
 
+const appSections = [
+    { id: 'Math', name: 'Mathematics', initial: 'Ma' },
+    { id: 'Reas', name: 'Analytical Ability & Logical Reasoning', initial: 'Re' },
+    { id: 'Comp', name: 'Computer', initial: 'Co' },
+    { id: 'Eng', name: 'General English', initial: 'Ge' },
+];
 
+function renderSectionsView() {
+    const container = document.getElementById('sections-grid-view');
+    const breadcrumb = document.getElementById('section-nav-breadcrumb');
+    const testsView = document.getElementById('tests-grid-view');
+    const emptyState = document.getElementById('section-empty-state');
+
+    breadcrumb.style.display = 'none';
+    testsView.classList.add('hidden');
+    emptyState.classList.add('hidden');
+    container.classList.remove('hidden');
+
+    container.innerHTML = appSections.map(sec => `
+        <div class="subject-card p-4 flex items-center gap-4" onclick="viewTestsForSection('${sec.id}', '${sec.name}')">
+            <div class="w-11 h-11 rounded-lg bg-[#eff6ff] text-[#3b82f6] flex items-center justify-center font-bold text-sm">
+                ${sec.initial}
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-gray-700 text-[14px] leading-tight">${sec.name}</h3>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 text-[9px]"></i>
+        </div>
+    `).join('');
+}
+
+function viewTestsForSection(sectionId, sectionName) {
+    const container = document.getElementById('sections-grid-view');
+    const testsView = document.getElementById('tests-grid-view');
+    const breadcrumb = document.getElementById('section-nav-breadcrumb');
+
+    container.classList.add('hidden');
+    testsView.classList.remove('hidden');
+    breadcrumb.style.display = 'flex';
+    document.getElementById('nav-section-title').innerText = sectionName;
+    document.getElementById('page-title').innerText = sectionName;
+
+    loadSectionTestsData(sectionId);
+}
+
+function loadSectionTestsData(sectionId) {
+    const grid = document.getElementById('tests-grid-view');
+    const emptyState = document.getElementById('section-empty-state');
+    const user = auth_fb.currentUser;
+    
+    if (!grid || !user) return;
+
+    grid.innerHTML = '<p class="col-span-3 text-center py-10 text-[#4318FF] font-bold animate-pulse">Syncing tests with Cloud...</p>';
+
+    // Step 1: Check user's attempted tests
+    db_fb.ref('results/' + user.uid).once('value', (resSnapshot) => {
+        const attemptedIds = [];
+        resSnapshot.forEach(child => {
+            const data = child.val();
+            if (data.testId) attemptedIds.push(data.testId);
+        });
+
+        // Step 2: Fetch tests from Firebase
+        db_fb.ref('tests').once('value', (snapshot) => {
+            const data = snapshot.val();
+            let tests = [];
+            if (data) {
+                tests = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+            }
+
+            const filtered = tests.filter(t => t.category === `sec_${sectionId}` || t.category === sectionId);
+
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            grid.innerHTML = filtered.map(t => {
+                const hasAttempted = attemptedIds.includes(t.id);
+                const btnText = hasAttempted ? "Re-attempt Test" : "Start Practice";
+                const btnStyle = hasAttempted 
+                    ? "bg-orange-500 text-white border-2 border-orange-500 hover:bg-transparent hover:text-orange-500" 
+                    : "bg-[#4318FF] text-white border-2 border-[#4318FF] hover:bg-transparent hover:text-[#4318FF]";
+
+                // Standard marks calculation
+                const totalMarks = t.qs ? t.qs.reduce((sum, q) => {
+                    let subject = q.sub || 'Math';
+                    if (subject === "Mathematics") subject = "Math";
+                    if (subject === "Reasoning") subject = "Reas";
+                    if (subject === "Computer") subject = "Comp";
+                    if (subject === "English") subject = "Eng";
+
+                    const weight = NIMCET_CONFIG[subject] ? NIMCET_CONFIG[subject].correct : 12; 
+                    return sum + weight;
+                }, 0) : 0;
+
+                return `
+                <div class="dashboard-card relative group p-6 hover:shadow-lg transition bg-white rounded-2xl border border-gray-100">
+                    ${currentUserRole === 'owner' ? `
+                    <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition z-10">
+                        <button onclick='openAddModal(null,"${t.id}")' class="text-blue-500 p-1"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteTest('${t.id}','section')" class="text-red-500 p-1"><i class="fas fa-trash"></i></button>
+                    </div>` : ''}
+
+                    <h3 class="text-lg font-extrabold text-[#2B3674] mb-6 line-clamp-1">${t.title}</h3>
+                    
+                    <div class="flex items-center justify-between mb-8 px-1">
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="flex items-center gap-1.5 text-gray-400 mb-1">
+                                <i class="far fa-question-circle text-[12px]"></i>
+                                <span class="text-[14px] font-bold text-[#2B3674]">${t.qs ? t.qs.length : 0}</span>
+                            </div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Questions</p>
+                        </div>
+
+                        <div class="w-[1px] h-8 bg-gray-100"></div>
+
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="flex items-center gap-1.5 text-indigo-500 mb-1">
+                                <i class="fas fa-medal text-[12px]"></i>
+                                <span class="text-[14px] font-bold text-[#2B3674]">${totalMarks}</span>
+                            </div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Marks</p>
+                        </div>
+
+                        <div class="w-[1px] h-8 bg-gray-100"></div>
+
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="flex items-center gap-1.5 text-orange-500 mb-1">
+                                <i class="far fa-clock text-[12px]"></i>
+                                <span class="text-[14px] font-bold text-[#2B3674]">${t.time}</span>
+                            </div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Minutes</p>
+                        </div>
+                    </div>
+
+                    <button onclick="startQuiz('${t.id}')" 
+                        class="w-full py-3 rounded-xl font-extrabold text-[13px] tracking-wide transition-all active:scale-95 shadow-md ${btnStyle}">
+                        ${btnText.toUpperCase()}
+                    </button>
+                </div>`;
+            }).join('');
+        });
+    });
+}
+
+function goBackToSections() {
+    document.getElementById('sections-grid-view').classList.remove('hidden');
+    document.getElementById('tests-grid-view').classList.add('hidden');
+    document.getElementById('section-empty-state').classList.add('hidden');
+    document.getElementById('section-nav-breadcrumb').style.display = 'none';
+    document.getElementById('page-title').innerText = "Subject Specific Practice";
+    renderSectionsView();
+}
+
+// Switch view function ke andar section view ko link karna
+function switchView(v) {
+    document.querySelectorAll('.nav-link').forEach(e => {
+        e.classList.remove('active');
+    });
+    
+    const navMap = { 
+        'dashboard': 'nav-dashboard', 
+        'daily': 'nav-daily', 
+        'full': 'nav-full', 
+        'section': 'nav-section', 
+        'pyq': 'nav-pyq',
+        'leaderboard': 'nav-leaderboard',
+        'all-users': 'nav-all-users'
+    };
+    
+    if (navMap[v] && document.getElementById(navMap[v])) {
+        document.getElementById(navMap[v]).classList.add('active');
+    }
+
+    const pageCrumb = document.getElementById('page-crumb');
+    const pageTitle = document.getElementById('page-title');
+
+    const titleConfig = {
+        'dashboard': { crumb: 'Dashboard', title: 'Dashboard Overview' },
+        'daily': { crumb: 'Daily Warmup', title: 'Daily Practice Zone' },
+        'full': { crumb: 'Full Mocks', title: 'Full Length Mock Tests' },
+        'section': { crumb: 'Section Wise', title: 'Subject Specific Practice' },
+        'pyq': { crumb: 'PYQ Papers', title: 'Previous Year Question Papers' },
+        'leaderboard': { crumb: 'Leaderboard', title: 'Global Rankings' },
+        'all-users': { crumb: 'Admin / Students', title: 'Registered Students' }
+    };
+
+    if (titleConfig[v]) {
+        pageCrumb.innerText = titleConfig[v].crumb;
+        pageTitle.innerText = titleConfig[v].title;
+    }
+
+    const analysisView = document.getElementById('view-analysis');
+    if (analysisView) {
+        analysisView.classList.add('hidden');
+        analysisView.style.display = 'none'; 
+    }
+
+    document.querySelectorAll('[id^="view-"]').forEach(e => {
+        if (e.id !== 'view-analysis') {
+            e.classList.add('hidden');
+            e.style.display = 'none';
+        }
+    });
+
+    if (v === 'all-users') {
+        if (currentUserRole === 'owner') {
+            loadAllRegisteredUsers();
+        } else {
+            switchView('dashboard'); 
+            return;
+        }
+    }
+
+    const targetView = document.getElementById('view-' + v);
+    const viewTests = document.getElementById('view-tests');
+
+    if (['daily', 'full', 'pyq'].includes(v)) {
+        if (viewTests) { 
+            viewTests.classList.remove('hidden'); 
+            viewTests.style.display = 'block';
+            loadTests(v); 
+        }
+    } else if (v === 'section') {
+        // Naya Section View Engine Load karein
+        const secView = document.getElementById('view-section');
+        if (secView) {
+            secView.classList.remove('hidden');
+            secView.style.display = 'block';
+            renderSectionsView();
+        }
+    } else if (targetView) {
+        targetView.classList.remove('hidden');
+        targetView.style.display = 'block';
+    }
+
+    if (v === 'dashboard') loadDashboard();
+}
 
 
 
