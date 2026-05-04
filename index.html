@@ -338,15 +338,28 @@
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="tests-grid"></div>
         </div>
 
-        <div id="view-section" class="hidden fade-in">
-             <div class="flex gap-4 mb-6 overflow-x-auto pb-2" id="section-tabs">
-                 <button onclick="filterSection('Math')" class="px-6 py-2 bg-[#4318FF] text-white rounded-xl text-sm font-bold shadow-md">Mathematics</button>
-                 <button onclick="filterSection('Comp')" class="px-6 py-2 bg-white text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50">Computer</button>
-                 <button onclick="filterSection('Reas')" class="px-6 py-2 bg-white text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50">Reasoning</button>
-                 <button onclick="filterSection('Eng')" class="px-6 py-2 bg-white text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50">English</button>
-             </div>
-             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="section-grid"></div>
+         <div id="view-section" class="hidden fade-in">
+    <div class="flex items-center gap-2 text-sm text-gray-400 mb-6" id="section-nav-breadcrumb" style="display: none;">
+        <span class="text-indigo-600 font-medium cursor-pointer hover:underline" onclick="goBackToSections()">Subjects</span>
+        <i class="fas fa-chevron-right text-[8px] text-gray-300"></i>
+        <span id="nav-section-title" class="text-gray-700 font-bold"></span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="sections-grid-view">
+        <div id="subject-loader" class="col-span-full flex flex-col items-center justify-center py-20">
+            <div class="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
         </div>
+    </div>
+
+    <div class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="tests-grid-view">
+        </div>
+
+    <div id="section-empty-state" class="hidden text-center py-24 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+        <div class="text-gray-200 mb-4 text-6xl"><i class="fas fa-folder-open"></i></div>
+        <p class="text-gray-500 font-medium">Abhi is section me koi content nahi hai.</p>
+        <button onclick="goBackToSections()" class="mt-4 text-indigo-600 font-bold text-sm underline hover:text-indigo-800 transition-colors">Wapas Subjects Par Jayein</button>
+    </div>
+</div>
         
         <!-- Analysis View -->
         <div id="view-analysis" class="hidden fade-in w-full h-full absolute inset-0 bg-[#F4F7FE] z-[60] overflow-y-auto p-4 md:p-8">
@@ -548,12 +561,15 @@
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Category</label>
-                        <select id="new-test-cat" class="w-full bg-white border-none rounded-xl px-4 py-3 font-semibold shadow-sm outline-none">
-                            <option value="full">Full Mock</option>
-                            <option value="daily">Daily Warmup</option>
-                            <option value="pyq">PYQ Paper</option>
-                            <option value="sec_Math">Sectional Math</option>
-                        </select>
+    <select id="new-test-cat" class="w-full bg-white border-none rounded-xl px-4 py-3 font-semibold shadow-sm outline-none">
+        <option value="full">Full Mock</option>
+        <option value="daily">Daily Warmup</option>
+        <option value="pyq">PYQ Paper</option>
+        <option value="sec_Math">Sectional Mathematics</option>
+        <option value="sec_Reas">Sectional Analytical Ability & Logical Reasoning</option>
+        <option value="sec_Comp">Sectional Computer</option>
+        <option value="sec_Eng">Sectional English</option>
+    </select>
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Time (Mins)</label>
