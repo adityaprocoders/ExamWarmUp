@@ -7,6 +7,20 @@
        
    
 
+.subject-card {
+    border: 1px solid #edf2f7;
+    transition: all 0.2s;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+}
+
+.subject-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
 /* Purani height aur padding ko hata kar Tailwind ko control lene dein */
 .q-footer {
     height: 80px !important; /* Standarized height */
@@ -355,6 +369,8 @@
     backdrop-filter: blur(8px); /* Pure page ko halka blur karne ke liye */
 }
 
+
+
 /* Auth card ko glass jaisa banane ke liye */
 #auth-screen > div { 
     background: rgba(255, 255, 255, 0.7) !important; /* Semi-transparent white */
@@ -398,12 +414,14 @@
         border-radius: 0;
     }
 
+   
+
     /* Quiz Header ko compact banayein */
     .q-header {
-        padding: 0 12px;
-        height: auto;
-        flex-direction: column;
-        padding-bottom: 10px;
+        display: flex;
+        justify-content: space-between; /* Isse logo left aur baki sab right ho jayega */
+        align-items: center;
+        padding: 10px 15px !important;
     }
 
     .q-content-box {
@@ -426,6 +444,15 @@
         width: 100%;
     }
 
+
+
+     .q-header > div:last-child {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+
     /* Grid layout fix for mobile stats */
     .grid-cols-5 {
         grid-template-columns: repeat(2, 1fr);
@@ -444,6 +471,82 @@
         inset: 0;
         background: rgba(0,0,0,0.5);
         z-index: 35;
+    }
+}
+
+
+
+
+@media (max-width: 768px) {
+    /* 1. Sidebar Drawer: Ekdum Sharp aur Solid */
+    .q-right {
+        display: flex !important;
+        position: fixed;
+        right: -100%; /* Shuru me chhupa hua */
+        top: 0;
+        width: 80%;
+        height: 100%;
+        background: #FFFFFF !important; /* Pure solid white */
+        z-index: 1000 !important; /* Overlay (998) se oopar */
+        transition: 0.3s ease-in-out;
+        flex-direction: column;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+
+        /* Sidebar ka apna blur disable */
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        filter: none !important;
+    }
+
+    .q-right.open {
+        right: 0 !important;
+        display: flex !important;
+    }
+
+    .q-right button {
+        cursor: pointer !important;
+        pointer-events: auto !important;
+    }
+
+    /* 2. Overlay: Sirf piche ki duniya blur karega */
+    #sidebar-overlay.visible {
+        display: block !important;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(10px) !important; /* Blur sirf yahan hai */
+        -webkit-backdrop-filter: blur(10px) !important;
+        z-index: 2000 !important;
+    }
+
+    /* 3. Submit Button Fix: Taki blur na ho */
+    .q-right .p-4.border-t {
+        position: sticky;
+        bottom: 0;
+        background: #FFFFFF !important;
+        width: 100%;
+       z-index: 3000 !important;
+        border-top: 1px solid #E0E5F2;
+    }
+}
+
+
+@media (max-width: 768px) {
+    /* Palette Header ka styling */
+    .pal-title {
+        display: flex !important;
+        background: #4318FF !important; /* Tera primary blue */
+        color: white !important;
+        margin: -20px -20px 20px -20px !important; /* Top padding adjust karne ke liye */
+        padding: 15px 20px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-radius: 0 !important; /* Top se flat rakho drawer look ke liye */
+    }
+
+    /* Overlay visible hone par scroll lock */
+    #sidebar-overlay.visible {
+        display: block !important;
+        opacity: 1 !important;
     }
 }
 
