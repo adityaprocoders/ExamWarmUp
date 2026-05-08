@@ -41,8 +41,53 @@
 }
 
 
+    /* AI Floating Button Styling */
+    .ai-button-wrapper {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 70px;
+        height: 70px;
+        background-color: #ffffff; /* White border look */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 9999;
+        box-shadow: 0 10px 30px rgba(67, 24, 255, 0.3);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 3px solid #4318FF; /* Dashboard primary color */
+        overflow: hidden;
+    }
 
+    .ai-button-wrapper:hover {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 15px 40px rgba(67, 24, 255, 0.5);
+    }
 
+    .ai-button-wrapper img {
+        width: 110%; /* Thoda bada taaki blue background pura fill ho jaye */
+        height: 110%;
+        object-fit: cover; /* Image ko circle mein properly crop karega */
+    }
+
+    /* Soft Glow Animation */
+    .ai-button-wrapper::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: rgba(67, 24, 255, 0.2);
+        z-index: -1;
+        animation: ai-glow 2s infinite;
+    }
+
+    @keyframes ai-glow {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1.6); opacity: 0; }
+    }
 
 
 
