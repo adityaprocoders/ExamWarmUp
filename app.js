@@ -728,25 +728,28 @@ return 'Math'; // Default
 
 let qs = [];
 if(currentBuilderMode === 'manual') {
-const qBlocks = document.querySelectorAll('#dynamic-questions-list > div');
-qs = Array.from(qBlocks).map((block, idx) => {
-const rawSub = block.querySelector('.q-sub').value;
-const subKey = getSubKey(rawSub);
-const config = NIMCET_CONFIG[subKey]; // Official multiplier yahan se aayega
+    const qBlocks = document.querySelectorAll('#dynamic-questions-list > div');
+    qs = Array.from(qBlocks).map((block, idx) => {
+        const rawSub = block.querySelector('.q-sub').value;
+        const subKey = getSubKey(rawSub);
+        const config = NIMCET_CONFIG[subKey]; 
+        const solInput = block.querySelector('.q-sol-input'); // Fix
 
-return {
-id: idx + 1, 
-sub: subKey,
-text: block.querySelector('.q-text-input').value,
-qImg: block.querySelector('.q-img-input').dataset.img || null,
-options: Array.from(block.querySelectorAll('.q-opt-text-input')).map(i => i.value),
-optImgs: Array.from(block.querySelectorAll('.q-opt-img-input')).map(i => i.dataset.img || null),
-correct: parseInt(block.querySelector('.q-correct-radio:checked')?.value || 0),
-marks: config.correct, // Sahi weightage (12, 6, 4) assign hoga
-neg: config.negative   // Sahi negative marking assign hogi
-};
-});
-} else {
+        return {
+            id: idx + 1, 
+            sub: subKey,
+            text: block.querySelector('.q-text-input').value,
+            qImg: block.querySelector('.q-img-input').dataset.img || null,
+            options: Array.from(block.querySelectorAll('.q-opt-text-input')).map(i => i.value),
+            optImgs: Array.from(block.querySelectorAll('.q-opt-img-input')).map(i => i.dataset.img || null),
+            correct: parseInt(block.querySelector('.q-correct-radio:checked')?.value || 0),
+            sol: solInput ? solInput.value : "",
+            marks: config.correct, 
+            neg: config.negative   
+        };
+    });
+}
+else {
 try {
 const rawJson = document.getElementById('json-input').value.trim();
 qs = JSON.parse(rawJson).map((q, idx) => {
@@ -1097,34 +1100,38 @@ document.getElementById('mode-json').classList.toggle('hidden', mode !== 'json')
 
 // 4. --- DYNAMIC SYNC LOGIC ---
 if(mode === 'json') {
-const jsonInput = document.getElementById('json-input');
+        const jsonInput = document.getElementById('json-input');
 
-// Manual builder se current questions ka data uthayein
-const qBlocks = document.querySelectorAll('#dynamic-questions-list > div');
+        // Manual builder se current questions ka data uthayein
+        const qBlocks = document.querySelectorAll('#dynamic-questions-list > div');
 
-if (qBlocks.length > 0) {
-const currentQs = Array.from(qBlocks).map((block, idx) => {
-// Har block se value extract karein
-const options = Array.from(block.querySelectorAll('.q-opt-text-input')).map(i => i.value);
-const optImgs = Array.from(block.querySelectorAll('.q-opt-img-input')).map(i => i.dataset.img || null);
+        if (qBlocks.length > 0) {
+            const currentQs = Array.from(qBlocks).map((block, idx) => {
+                // Har block se value extract karein
+                const options = Array.from(block.querySelectorAll('.q-opt-text-input')).map(i => i.value);
+                const optImgs = Array.from(block.querySelectorAll('.q-opt-img-input')).map(i => i.dataset.img || null);
 
-return {
-id: idx + 1,
-sub: block.querySelector('.q-sub').value,
-text: block.querySelector('.q-text-input').value,
-qImg: block.querySelector('.q-img-input').dataset.img || null,
-options: options,
-optImgs: optImgs,
-correct: parseInt(block.querySelector('.q-correct-radio:checked')?.value || 0)
-};
-});
+                // --- FIX: Solution input element ko select karein (agar aapke DOM me h to) ---
+                const solInput = block.querySelector('.q-sol-input'); 
 
-// JSON Editor mein stringify karke fill karein
-jsonInput.value = JSON.stringify(currentQs, null, 2);
-}
+                return {
+                    id: idx + 1,
+                    sub: block.querySelector('.q-sub').value,
+                    text: block.querySelector('.q-text-input').value,
+                    qImg: block.querySelector('.q-img-input').dataset.img || null,
+                    options: options,
+                    optImgs: optImgs,
+                    correct: parseInt(block.querySelector('.q-correct-radio:checked')?.value || 0),
+                    sol: solInput ? solInput.value : (block.dataset.sol || "Optional solution text here...")
+                };
+            });
 
-jsonInput.focus();
-}
+            // JSON Editor mein stringify karke fill karein
+            jsonInput.value = JSON.stringify(currentQs, null, 2);
+        }
+
+        jsonInput.focus();
+    }
 }
 
 
@@ -1353,45 +1360,50 @@ qDiv.id = `q-block-${qCount}`;
 qDiv.className = "bg-white p-6 rounded-3xl border-2 border-[#4318FF]/10 shadow-sm relative mb-6 transition-all duration-500";
 
 qDiv.innerHTML = `
-       <div class="flex justify-between items-start mb-4">
-           <div class="flex items-center gap-3">
-               <div class="bg-[#4318FF] text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-100">
-                   Q${qCount}
-               </div>
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-[#4318FF] text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-100">
+                    Q${qCount}
+                </div>
 
-               <select class="q-sub bg-[#F4F7FE] border-none rounded-xl px-4 py-2 text-sm font-bold text-[#2B3674] outline-none">
-                   <option value="Math" ${data?.sub==='Math'?'selected':''}>Mathematics</option>
-                   <option value="Comp" ${data?.sub==='Comp'?'selected':''}>Computer</option>
-                   <option value="Reas" ${data?.sub==='Reas'?'selected':''}>Reasoning</option>
-                   <option value="Eng" ${data?.sub==='Eng'?'selected':''}>English</option>
-               </select>
-           </div>
-           
-           <button onclick="removeQuestionBlock(this)" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
-               <i class="fas fa-trash-alt text-xs"></i>
-           </button>
-       </div>
+                <select class="q-sub bg-[#F4F7FE] border-none rounded-xl px-4 py-2 text-sm font-bold text-[#2B3674] outline-none">
+                    <option value="Math" ${data?.sub==='Math'?'selected':''}>Mathematics</option>
+                    <option value="Comp" ${data?.sub==='Comp'?'selected':''}>Computer</option>
+                    <option value="Reas" ${data?.sub==='Reas'?'selected':''}>Reasoning</option>
+                    <option value="Eng" ${data?.sub==='Eng'?'selected':''}>English</option>
+                </select>
+            </div>
+            
+            <button onclick="removeQuestionBlock(this)" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
+                <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+        </div>
 
-       <textarea class="q-text-input w-full bg-[#F4F7FE] border-none rounded-2xl px-5 py-4 text-sm mb-4 h-24 outline-none focus:ring-2 focus:ring-[#4318FF]/20 font-medium" placeholder="Enter Question...">${data?.text || ''}</textarea>
-       
-       <div class="mb-4 bg-gray-50 p-4 rounded-xl border border-dashed text-center">
-           <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">Question Photo (Optional)</label>
-           <input type="file" onchange="handleImg(this)" class="q-img-input text-xs">
-           ${data?.qImg ? `<p class="text-[10px] text-green-500 mt-1 font-bold">Image loaded</p>` : ''}
-       </div>
+        <textarea class="q-text-input w-full bg-[#F4F7FE] border-none rounded-2xl px-5 py-4 text-sm mb-4 h-24 outline-none focus:ring-2 focus:ring-[#4318FF]/20 font-medium" placeholder="Enter Question...">${data?.text || ''}</textarea>
+        
+        <div class="mb-4 bg-gray-50 p-4 rounded-xl border border-dashed text-center">
+            <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">Question Photo (Optional)</label>
+            <input type="file" onchange="handleImg(this)" class="q-img-input text-xs">
+            ${data?.qImg ? `<p class="text-[10px] text-green-500 mt-1 font-bold">Image loaded</p>` : ''}
+        </div>
 
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-           ${[0, 1, 2, 3].map(i => `
-               <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                   <div class="flex items-center gap-2 mb-2">
-                       <input type="radio" name="correct_${qIndex}" class="q-correct-radio" ${data?.correct === i ? 'checked' : ''} value="${i}">
-                       <span class="text-[10px] font-bold text-gray-400 uppercase">Option ${String.fromCharCode(65+i)}</span>
-                   </div>
-                   <input type="text" class="q-opt-text-input w-full bg-white border-none rounded-lg px-3 py-2 text-sm mb-2 outline-none shadow-sm" placeholder="Text..." value="${data?.options ? data.options[i] : ''}">
-                   <input type="file" onchange="handleImg(this)" class="q-opt-img-input text-[10px] w-full">
-               </div>
-           `).join('')}
-       </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${[0, 1, 2, 3].map(i => `
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="radio" name="correct_${qIndex}" class="q-correct-radio" ${data?.correct === i ? 'checked' : ''} value="${i}">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">Option ${String.fromCharCode(65+i)}</span>
+                    </div>
+                    <input type="text" class="q-opt-text-input w-full bg-white border-none rounded-lg px-3 py-2 text-sm mb-2 outline-none shadow-sm" placeholder="Text..." value="${data?.options ? data.options[i] : ''}">
+                    <input type="file" onchange="handleImg(this)" class="q-opt-img-input text-[10px] w-full">
+                </div>
+            `).join('')}
+        </div>
+
+        <div class="mt-4">
+            <label class="text-[10px] font-bold text-[#4318FF] block mb-1 uppercase tracking-wider">Question Solution (Optional)</label>
+            <textarea class="q-sol-input w-full bg-[#F4F7FE] border-none rounded-2xl px-5 py-3 text-sm h-16 outline-none focus:ring-2 focus:ring-[#4318FF]/20 font-medium" placeholder="Enter solution details...">${data?.sol || ''}</textarea>
+        </div>
    `;
 container.appendChild(qDiv);
 }
