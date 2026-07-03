@@ -732,13 +732,14 @@ if(currentBuilderMode === 'manual') {
     qs = Array.from(qBlocks).map((block, idx) => {
         const rawSub = block.querySelector('.q-sub').value;
         const subKey = getSubKey(rawSub);
+        const topicVal = block.querySelector('.q-topic-input').value;
         const config = NIMCET_CONFIG[subKey]; 
         const solInput = block.querySelector('.q-sol-input'); // Fix
 
         return {
             id: idx + 1, 
             sub: subKey,
-            topic: block.querySelector('.q-topic-input').value,
+            topic: topicVal,
             text: block.querySelector('.q-text-input').value,
             qImg: block.querySelector('.q-img-input').dataset.img || null,
             options: Array.from(block.querySelectorAll('.q-opt-text-input')).map(i => i.value),
