@@ -738,6 +738,7 @@ if(currentBuilderMode === 'manual') {
         return {
             id: idx + 1, 
             sub: subKey,
+            topic: block.querySelector('.q-topic-input').value,
             text: block.querySelector('.q-text-input').value,
             qImg: block.querySelector('.q-img-input').dataset.img || null,
             options: Array.from(block.querySelectorAll('.q-opt-text-input')).map(i => i.value),
@@ -1117,6 +1118,7 @@ if(mode === 'json') {
                 return {
                     id: idx + 1,
                     sub: block.querySelector('.q-sub').value,
+                    topic: block.querySelector('.q-topic-input').value,
                     text: block.querySelector('.q-text-input').value,
                     qImg: block.querySelector('.q-img-input').dataset.img || null,
                     options: options,
@@ -1373,6 +1375,9 @@ qDiv.innerHTML = `
                     <option value="Eng" ${data?.sub==='Eng'?'selected':''}>English</option>
                 </select>
             </div>
+
+            <input type="text" class="q-topic-input bg-[#F4F7FE] border-none rounded-xl px-4 py-2 text-sm font-bold text-[#2B3674] outline-none w-32" 
+             placeholder="Topic..." value="${data?.topic || ''}">
             
             <button onclick="removeQuestionBlock(this)" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
                 <i class="fas fa-trash-alt text-xs"></i>
